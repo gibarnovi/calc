@@ -377,6 +377,19 @@ textarea.io{
     </details>
 
     <details class="sect">
+      <summary data-i18n="v.order">მინიმალური შეკვეთა</summary>
+      <div class="sect-body">
+        <div class="grid2">
+          <label class="fld"><span data-i18n="v.target">სამიზნე ფართობი (მ²)</span>
+            <input type="text" inputmode="decimal" data-set="order.targetM2" autocomplete="off" spellcheck="false"></label>
+          <label class="fld"><span data-i18n="v.step">დამრგვალება (ც)</span>
+            <input type="text" inputmode="decimal" data-set="order.step" autocomplete="off" spellcheck="false"></label>
+        </div>
+        <p class="hint" data-i18n="v.order.note">რაოდენობის ველში ნაცრისფრად ჩანს შემოთავაზებული რაოდენობა. ის გამოთვლაში არ მონაწილეობს — რიცხვი თავად უნდა აკრიფო.</p>
+      </div>
+    </details>
+
+    <details class="sect">
       <summary data-i18n="v.limits">დანადგარის შეზღუდვები</summary>
       <div class="sect-body">
         <label class="fld"><span data-i18n="v.maxLW">L+W არაუმეტეს (მმ)</span>
@@ -520,6 +533,9 @@ const DEFAULTS = {
   /* Machine limits, mm. Advisory only — they warn, they never touch the
      price. Boxes only: a slotter does not run plain sheets. */
   limits:{ maxLW: 1150, maxHW2: 800, minBlankW: 300 },
+  /* Suggested order quantity: the pieces that land nearest targetM2,
+     rounded to `step`. Shown as a greyed placeholder only — never a value. */
+  order: { targetM2: 500, step: 50 },
   def:   { type: "box", layers: "3", color: "grey" },
   lang:  "ka",
   dec:   2
@@ -554,6 +570,8 @@ const I18N = {
     "v.a3":"სიგანეზე · 3 ფენა (+მმ)","v.a5":"სიგანეზე · 5 ფენა (+მმ)",
     "v.x2":"ფასდაკლების ფაქტორი (x2)","v.x2base":"საბაზისო","v.x2decay":"კლების კოეფ.",
     "v.x2thr":"ზღვარი (მ²)","v.x2above":"ზღვარს ზემოთ",
+    "v.order":"მინიმალური შეკვეთა","v.target":"სამიზნე ფართობი (მ²)","v.step":"დამრგვალება (ც)",
+    "v.order.note":"რაოდენობის ველში ნაცრისფრად ჩანს შემოთავაზებული რაოდენობა. ის გამოთვლაში არ მონაწილეობს — რიცხვი თავად უნდა აკრიფო.",
     "v.limits":"დანადგარის შეზღუდვები","v.maxLW":"L+W არაუმეტეს (მმ)",
     "v.maxHW2":"H+W/2 არაუმეტეს (მმ)","v.minBlankW":"სლოტერის მინ. ფორმატი (მმ)",
     "v.limits.note":"ეხება მხოლოდ ყუთს. გაფრთხილება ფასს არ ცვლის.",
@@ -592,6 +610,8 @@ const I18N = {
     "v.a3":"Width · 3-layer (+mm)","v.a5":"Width · 5-layer (+mm)",
     "v.x2":"Discount factor (x2)","v.x2base":"Base","v.x2decay":"Decay",
     "v.x2thr":"Threshold (m²)","v.x2above":"Above threshold",
+    "v.order":"Minimum order","v.target":"Target area (m²)","v.step":"Rounding step (pcs)",
+    "v.order.note":"The quantity field shows a greyed suggestion. It is not used in the calculation — you type the number yourself.",
     "v.limits":"Machine limits","v.maxLW":"L+W max (mm)",
     "v.maxHW2":"H+W/2 max (mm)","v.minBlankW":"Slotter min format (mm)",
     "v.limits.note":"Boxes only. The warning never changes the price.",
@@ -724,8 +744,28 @@ function checkLimits(row, s){
   return out;
 }
 
+/* Suggested order quantity. Like checkLimits(), computeQuote() never calls
+   this, and the UI renders it as a placeholder rather than a value — so it
+   has no path into a price. Reuses blankSize() so the suggestion is derived
+   from exactly the same m2 the price uses. */
+function suggestQty(row, s){
+  const o = s.order || {};
+  const target = parseNum(o.targetM2), step = parseNum(o.step);
+  if (!(target > 0) || !(step > 0)) return null;
+  const need = row.type === "sheet" ? ["L","W"] : ["L","W","H"];
+  if (!need.every(k => Number.isFinite(row[k]) && row[k] > 0)) return null;
+  const b = blankSize(row, s);
+  const m2 = b.Ltot * b.Wtot * 0.000001;
+  if (!(m2 > 0)) return null;
+  const raw = target / m2;
+  if (!Number.isFinite(raw) || raw <= 0) return null;
+  /* Below one step, round to whole pieces — otherwise a very large product
+     would round down to a nonsensical 0. */
+  return raw < step ? Math.max(1, Math.round(raw)) : Math.round(raw / step) * step;
+}
+
 /* Exposed for the automated parity test against the original file. */
-window.GBOX = { DEFAULTS, parseNum, computeQuote, factorFor, blankSize, checkLimits };
+window.GBOX = { DEFAULTS, parseNum, computeQuote, factorFor, blankSize, checkLimits, suggestQty };
 
 /* ============================================================
    STORAGE — every access guarded: localStorage throws outright
@@ -751,6 +791,7 @@ function sanitize(raw){
   });
   if (raw.x2) ["base","decay","threshold","above"].forEach(k => { s.x2[k] = num(raw.x2[k], s.x2[k]); });
   if (raw.limits) ["maxLW","maxHW2","minBlankW"].forEach(k => { s.limits[k] = num(raw.limits[k], s.limits[k]); });
+  if (raw.order) ["targetM2","step"].forEach(k => { s.order[k] = num(raw.order[k], s.order[k]); });
   if (raw.def){
     if (raw.def.type === "box" || raw.def.type === "sheet") s.def.type = raw.def.type;
     if (String(raw.def.layers) === "3" || String(raw.def.layers) === "5") s.def.layers = String(raw.def.layers);
@@ -925,6 +966,12 @@ function paint(){
     const o = q.rows[i];
     const meta  = node.querySelector(".out-meta");
     const total = node.querySelector(".out-total");
+
+    /* Suggested quantity shown as a placeholder, so the field stays empty
+       and nothing the user types can be overwritten. */
+    const qtyInput = node.querySelector('input[name="qty"]');
+    const sug = suggestQty(nrows[i], s);
+    qtyInput.placeholder = sug === null ? "—" : fmtNum(sug, 0);
 
     /* Advisory machine-limit check — never feeds into the price. */
     const issues = checkLimits(nrows[i], s);
