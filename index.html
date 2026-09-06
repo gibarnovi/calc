@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GBOX — ფასის კალკულატორი</title>
+<meta name="description" content="Corrugated box and sheet price calculator — mobile first">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GBOX">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAABzUlEQVR42u3cQQ0AIQwAQRRwCSIQgIR7IxJLOMIAAgpMsgLaZt5N+SvStuQEgkNwCA7BITgEh+AQHIJDcEhwCA7BITgEh+AQHIJDcAgOCQ7BITgEh+AQHIJDcAgOwSHBITgEh+AQHIJDcAgOwbGtjv+g3twIDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAOOeM9b2uwBu3tyOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjgkOAQHIJDcAgOwSE4BIfgEByCQ4JDcAgOwSE4BIfgEByCQ3BIcAgOwSE4BIfgUPgW3fqzC8i5jmIAAAAASUVORK5CYII=">
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAABzUlEQVR42u3cQQ0AIQwAQRRwCSIQgIR7IxJLOMIAAgpMsgLaZt5N+SvStuQEgkNwCA7BITgEh+AQHIJDcEhwCA7BITgEh+AQHIJDcAgOCQ7BITgEh+AQHIJDcAgOwSHBITgEh+AQHIJDcAgOwbGtjv+g3twIDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAOOeM9b2uwBu3tyOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjgkOAQHIJDcAgOwSE4BIfgEByCQ4JDcAgOwSE4BIfgEByCQ3BIcAgOwSE4BIfgUPgW3fqzC8i5jmIAAAAASUVORK5CYII=">
+<style>
+/* ============================================================
+   1. DESIGN TOKENS
+   The accent colour is used for exactly one thing: the grand
+   total. Everything else is neutral, so the price is the only
+   coloured object on screen (Von Restorff / isolation effect).
+   ============================================================ */
+:root{
+  --bg:#f2f2f7;
+  --surface:#ffffff;
+  --surface-2:#e9e9ef;
+  --surface-3:#f6f6f9;
+  --seg-track:#e9e9ef;
+  --seg-thumb:#ffffff;
+  --ink:#11131a;
+  --ink-2:#565b6b;
+  --ink-3:#8b90a1;
+  --line:#e0e1e8;
+  --accent:#0a7d32;
+  --danger:#c62828;
+  --r:14px;
+  --r-sm:10px;
+  --shadow:0 1px 2px rgba(16,18,26,.05), 0 4px 14px rgba(16,18,26,.045);
+  --thumb-shadow:0 1px 3px rgba(0,0,0,.13);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#000000;
+    --surface:#1c1c1e;
+    --surface-2:#2c2c2e;
+    --surface-3:#141416;
+    --seg-track:#2c2c2e;
+    --seg-thumb:#4a4a4e;
+    --ink:#ffffff;
+    --ink-2:#a8a8ae;
+    --ink-3:#76767c;
+    --line:#2c2c2e;
+    --accent:#32d74b;
+    --danger:#ff6b6b;
+    --shadow:none;
+    --thumb-shadow:0 1px 3px rgba(0,0,0,.4);
+  }
+}
+
+/* ============================================================
+   2. BASE
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Noto Sans Georgian","BPG Nino Mtavruli",Sylfaen,"Segoe UI",system-ui,Roboto,sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  line-height:1.35;
+  height:var(--app-h,100dvh);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  overscroll-behavior:none;
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+}
+button,input,textarea{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer;touch-action:manipulation}
+input,textarea{touch-action:manipulation}
+:focus-visible{outline:2px solid var(--ink-2);outline-offset:2px;border-radius:6px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.num{font-variant-numeric:tabular-nums lining-nums}
+
+/* ============================================================
+   3. APP BAR
+   ============================================================ */
+.appbar{
+  flex:0 0 auto;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:calc(env(safe-area-inset-top) + 9px) max(14px,env(safe-area-inset-right)) 9px max(14px,env(safe-area-inset-left));
+  background:var(--bg);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:baseline;gap:7px;min-width:0}
+.brand b{font-size:16px;font-weight:800;letter-spacing:.4px}
+.brand span{font-size:12px;font-weight:500;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ratepill{
+  position:relative;flex:0 0 auto;
+  display:inline-flex;align-items:center;gap:5px;
+  min-height:44px;padding:7px 14px;
+  border-radius:999px;background:var(--surface);border:1px solid var(--line);
+  font-size:13px;font-weight:700;color:var(--ink-2);
+}
+.ratepill:active{background:var(--surface-2)}
+
+/* ============================================================
+   4. SCROLL AREA
+   ============================================================ */
+.scroll{
+  flex:1 1 auto;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  padding:12px max(14px,env(safe-area-inset-right)) 22px max(14px,env(safe-area-inset-left));
+}
+.view{display:flex;flex-direction:column;gap:11px}
+.view[hidden]{display:none}
+
+/* ---- product card ---- */
+.card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  box-shadow:var(--shadow);
+  padding:12px;
+  display:flex;flex-direction:column;gap:8px;
+}
+.card-head{display:flex;align-items:center;justify-content:space-between;min-height:22px}
+.card-title{font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--ink-3)}
+.icon-btn{
+  width:44px;height:44px;margin:-11px -11px -11px 0;
+  display:grid;place-items:center;border-radius:50%;
+  font-size:23px;line-height:1;color:var(--ink-3);
+}
+.icon-btn:active{background:var(--surface-2)}
+.card[data-single="1"] .icon-btn{display:none}
+
+/* ---- segmented controls: 38px + 3px track padding = 44px target ---- */
+.segrow{display:flex;gap:8px}
+.segrow > .seg{flex:1 1 0;min-width:0}
+.seg{display:flex;gap:3px;padding:3px;background:var(--seg-track);border-radius:12px}
+.seg button{
+  /* 44px: Apple's minimum touch target. Non-negotiable, even though
+     a shorter pill would look tidier. */
+  flex:1 1 0;min-width:0;min-height:44px;padding:0 6px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:9px;font-size:14px;font-weight:600;color:var(--ink-2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:background .18s ease,color .18s ease,box-shadow .18s ease;
+}
+.seg button[aria-checked="true"]{background:var(--seg-thumb);color:var(--ink);box-shadow:var(--thumb-shadow)}
+
+/* ---- dimension fields ---- */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fld > span{font-size:11px;font-weight:700;letter-spacing:.3px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fld input{
+  width:100%;min-height:46px;padding:10px 12px;
+  /* 17px is deliberate: anything under 16px makes iOS Safari zoom
+     the page on every focus. This is the core mobile fix. */
+  font-size:17px;font-weight:650;
+  font-variant-numeric:tabular-nums lining-nums;
+  background:var(--surface-3);
+  border:1px solid var(--line);
+  border-radius:var(--r-sm);
+  appearance:none;-webkit-appearance:none;
+  transition:border-color .15s ease,background .15s ease;
+}
+.fld input::placeholder{color:var(--ink-3);font-weight:400}
+.fld input:focus{outline:none;border-color:var(--ink-2);background:var(--surface);box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-2) 16%,transparent)}
+.card.is-sheet .fld[data-name="H"]{display:none}
+.card.is-sheet .fld[data-name="qty"]{grid-column:1 / -1}
+
+/* ---- per-card computed line ---- */
+.card-out{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:10px;
+  min-height:32px;padding-top:9px;border-top:1px solid var(--line);
+}
+.out-meta{font-size:12px;line-height:1.45;color:var(--ink-3);font-variant-numeric:tabular-nums lining-nums;min-width:0}
+.out-total{font-size:17px;font-weight:750;white-space:nowrap;font-variant-numeric:tabular-nums lining-nums}
+.out-total.is-empty{color:var(--ink-3);font-weight:500}
+
+/* ---- action buttons ---- */
+.actions{display:flex;gap:8px}
+.btn{
+  flex:1 1 0;min-height:48px;padding:0 12px;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  border-radius:var(--r);font-size:15px;font-weight:650;
+  background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);
+}
+.btn:active{background:var(--surface-2)}
+.btn.ghost{background:transparent;box-shadow:none;color:var(--ink-2)}
+.hint{font-size:12px;line-height:1.5;color:var(--ink-3);padding:0 2px}
+
+/* ============================================================
+   5. DOCK — result bar + tab bar (thumb zone)
+   ============================================================ */
+.dock{flex:0 0 auto;background:var(--surface);border-top:1px solid var(--line)}
+.result[hidden]{display:none}
+.result-row{display:flex;align-items:center;padding-right:max(8px,env(safe-area-inset-right))}
+.result-main{
+  flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;text-align:left;min-height:66px;
+  padding:9px 0 9px max(14px,env(safe-area-inset-left));
+}
+.result-left{flex:1 1 auto;min-width:0;display:block}
+.copy-btn{flex:0 0 auto}
+.result-label,.total-gel,.total-usd{display:block}
+.result-label{font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-3)}
+.total-gel{
+  font-size:clamp(26px,8.6vw,35px);font-weight:800;letter-spacing:-.9px;line-height:1.12;
+  color:var(--accent);
+  font-variant-numeric:tabular-nums lining-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.total-gel.is-empty{color:var(--ink-3);font-weight:700}
+.total-usd{font-size:12.5px;font-weight:650;color:var(--ink-3);font-variant-numeric:tabular-nums lining-nums}
+/* Reserve the row rather than removing it: the dock must not change
+   height the moment the first price appears. */
+.total-usd.is-hidden{visibility:hidden}
+.round-btn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--ink-2)}
+.round-btn:active{background:var(--surface-2)}
+.chev{transition:transform .2s ease}
+.result.open .chev{transform:rotate(180deg)}
+
+.breakdown{
+  max-height:40dvh;overflow-y:auto;overscroll-behavior:contain;
+  background:var(--surface-3);border-top:1px solid var(--line);
+  padding:4px max(14px,env(safe-area-inset-right)) 12px max(14px,env(safe-area-inset-left));
+}
+.breakdown[hidden]{display:none}
+.bd-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;font-size:13px;border-bottom:1px solid var(--line)}
+.bd-row:last-child{border-bottom:0}
+.bd-row.head{font-weight:750;color:var(--ink-3);font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;padding-top:11px;border-bottom:0}
+.bd-k{color:var(--ink-2);min-width:0}
+.bd-v{font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums lining-nums}
+
+.tabbar{display:flex;background:var(--surface);padding-bottom:env(safe-area-inset-bottom);border-top:1px solid var(--line)}
+.tabbar button{
+  flex:1 1 0;min-height:52px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-size:11px;font-weight:650;color:var(--ink-3);
+}
+.tabbar button[aria-selected="true"]{color:var(--ink)}
+.tabbar svg{width:23px;height:23px;display:block}
+
+/* ============================================================
+   6. VARIABLES TAB
+   ============================================================ */
+.sect{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.sect > summary{
+  list-style:none;min-height:50px;padding:0 14px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  font-size:15px;font-weight:700;cursor:pointer;
+}
+.sect > summary::-webkit-details-marker{display:none}
+.sect > summary::after{
+  content:"";flex:0 0 auto;width:8px;height:8px;margin-right:3px;
+  border-right:2px solid var(--ink-3);border-bottom:2px solid var(--ink-3);
+  transform:rotate(45deg);transition:transform .2s ease;
+}
+.sect[open] > summary::after{transform:rotate(-135deg)}
+.sect-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.readout{
+  background:var(--surface-3);border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:10px 12px;font-size:13px;line-height:1.55;color:var(--ink-2);
+  font-variant-numeric:tabular-nums lining-nums;
+}
+.readout b{color:var(--ink);font-weight:750}
+textarea.io{
+  width:100%;min-height:88px;padding:10px 12px;resize:vertical;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;
+  background:var(--surface-3);border:1px solid var(--line);border-radius:var(--r-sm);
+  appearance:none;-webkit-appearance:none;
+}
+.btn.danger{color:var(--danger)}
+
+/* ============================================================
+   7. TOAST
+   ============================================================ */
+.toast{
+  position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 132px);z-index:60;
+  transform:translateX(-50%) translateY(10px);
+  background:var(--ink);color:var(--bg);
+  padding:11px 18px;border-radius:999px;
+  font-size:14px;font-weight:700;white-space:nowrap;
+  opacity:0;pointer-events:none;
+  transition:opacity .18s ease,transform .18s ease;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{transition-duration:.001ms !important;animation-duration:.001ms !important}
+}
+</style>
+</head>
+<body>
+
+<header class="appbar">
+  <div class="brand">
+    <b>GBOX</b><span data-i18n="app.sub">ფასის კალკულატორი</span>
+  </div>
+  <button type="button" class="ratepill num" id="ratePill" data-act="goto-rate">
+    <span aria-hidden="true">$1 =</span> <span id="ratePillVal">2.75 ₾</span>
+  </button>
+</header>
+
+<main class="scroll" id="scroll">
+
+  <!-- ========== TAB 1 — CALCULATOR ========== -->
+  <section class="view" id="view-calc" role="tabpanel" aria-labelledby="tab-calc">
+    <div id="cards"></div>
+    <div class="actions">
+      <button type="button" class="btn" data-act="add"><span data-i18n="act.add">+ პროდუქტი</span></button>
+      <button type="button" class="btn ghost" data-act="clear"><span data-i18n="act.clear">გასუფთავება</span></button>
+    </div>
+    <p class="hint" data-i18n="hint.tip">მინიშნება: სიგრძის ველში ჩაწერე 500x300x200 — ავტომატურად გაიყოფა.</p>
+  </section>
+
+  <!-- ========== TAB 2 — VARIABLES ========== -->
+  <section class="view" id="view-vars" role="tabpanel" aria-labelledby="tab-vars" hidden>
+
+    <details class="sect" id="sect-rate" open>
+      <summary data-i18n="v.rate">კურსი</summary>
+      <div class="sect-body">
+        <label class="fld"><span data-i18n="v.rate.f">კურსი (USD → GEL)</span>
+          <input type="text" inputmode="decimal" data-set="rate" autocomplete="off" spellcheck="false"></label>
+      </div>
+    </details>
+
+    <details class="sect">
+      <summary data-i18n="v.prices">ბაზისური ფასები</summary>
+      <div class="sect-body">
+        <div class="grid2">
+          <label class="fld"><span data-i18n="v.p3g">3 ფენა · რუხი</span>
+            <input type="text" inputmode="decimal" data-set="price.3.grey" autocomplete="off" spellcheck="false"></label>
+          <label class="fld"><span data-i18n="v.p3w">3 ფენა · თეთრი</span>
+            <input type="text" inputmode="decimal" data-set="price.3.white" autocomplete="off" spellcheck="false"></label>
+          <label class="fld"><span data-i18n="v.p5g">5 ფენა · რუხი</span>
+            <input type="text" inputmode="decimal" data-set="price.5.grey" autocomplete="off" spellcheck="false"></label>
+          <label class="fld"><span data-i18n="v.p5w">5 ფენა · თეთრი</span>
+            <input type="text" inputmode="decimal" data-set="price.5.white" autocomplete="off" spellcheck="false"></label>
+        </div>
+        <p class="hint" data-i18n="v.prices.note">USD / მ², დღგ ჩათვლით.</p>
+      </div>
+    </details>
+
+    <details class="sect">
+      <summary data-i18n="v.constr">ყუთის კონსტრუქცია</summary>
+      <div class="sect-body">
+        <label class="fld"><span data-i18n="v.flap">დანამატი სიგრძეზე (+მმ)</span>
+          <input type="text" inputmode="decimal" data-set="flap" autocomplete="off" spellcheck="false"></label>
+        <div class="grid2">
+          <label class="fld"><span data-i18n="v.a3">სიგანეზე · 3 ფენა (+მმ)</span>
+            <input type="text" inputmode="decimal" data-set="allow.3" autocomplete="off" spellcheck="false"></label>
+          <label class="fld"><span data-i18n="v.a5">სიგანეზე · 5 ფენა (+მმ)</span>
+            <input type="text" inputmode="decimal" data-set="allow.5" autocomplete="off" spellcheck="false"></label>
+        </div>
+        <div class="readout" id="formulaOut"></div>
+      </div>
+    </details>
+
+    <details class="sect">
+      <summary data-i18n="v.x2">ფასდაკლების ფაქტორი (x2)</summary>
+      <div class="sect-body">
+        <div class="grid2">
+          <label class="fld"><span data-i18n="v.x2base">საბაზისო</span>
+            <input type="text" inputmode="decimal" data-set="x2.base" autocomplete="off" spellcheck="false"></label>
+          <label class="fld"><span data-i18n="v.x2decay">კლების კოეფ.</span>
+            <input type="text" inputmode="decimal" data-set="x2.decay" autocomplete="off" spellcheck="false"></label>
+          <label class="fld"><span data-i18n="v.x2thr">ზღვარი (მ²)</span>
+            <input type="text" inputmode="decimal" data-set="x2.threshold" autocomplete="off" spellcheck="false"></label>
+          <label class="fld"><span data-i18n="v.x2above">ზღვარს ზემოთ</span>
+            <input type="text" inputmode="decimal" data-set="x2.above" autocomplete="off" spellcheck="false"></label>
+        </div>
+        <div class="readout" id="x2Out"></div>
+        <p class="hint" data-i18n="hint.x2">ფასდაკლების ფაქტორი ითვლება ყველა პროდუქტის ჯამურ ფართობზე, ამიტომ ახალი პროდუქტის დამატება ცვლის დანარჩენების ფასსაც.</p>
+      </div>
+    </details>
+
+    <details class="sect">
+      <summary data-i18n="v.defaults">ნაგულისხმევი მნიშვნელობები</summary>
+      <div class="sect-body">
+        <div class="seg" role="radiogroup" data-defset="type" aria-label="type">
+          <button type="button" role="radio" data-val="box" data-i18n="type.box">ყუთი</button>
+          <button type="button" role="radio" data-val="sheet" data-i18n="type.sheet">ლისტი</button>
+        </div>
+        <div class="segrow">
+          <div class="seg" role="radiogroup" data-defset="layers" aria-label="layers">
+            <button type="button" role="radio" data-val="3" data-i18n="layers.3">3 ფენა</button>
+            <button type="button" role="radio" data-val="5" data-i18n="layers.5">5 ფენა</button>
+          </div>
+          <div class="seg" role="radiogroup" data-defset="color" aria-label="color">
+            <button type="button" role="radio" data-val="grey" data-i18n="color.grey">რუხი</button>
+            <button type="button" role="radio" data-val="white" data-i18n="color.white">თეთრი</button>
+          </div>
+        </div>
+        <p class="hint" data-i18n="v.defaults.note">ახალი პროდუქტის ბარათი ამ პარამეტრებით იხსნება.</p>
+      </div>
+    </details>
+
+    <details class="sect">
+      <summary data-i18n="v.display">ჩვენება</summary>
+      <div class="sect-body">
+        <div class="fld"><span data-i18n="v.lang">ენა</span>
+          <div class="seg" role="radiogroup" data-langset="1" aria-label="language">
+            <button type="button" role="radio" data-val="ka">ქართული</button>
+            <button type="button" role="radio" data-val="en">English</button>
+          </div>
+        </div>
+        <div class="fld"><span data-i18n="v.dec">ათწილადი (₾)</span>
+          <div class="seg" role="radiogroup" data-decset="1" aria-label="decimals">
+            <button type="button" role="radio" data-val="0">0</button>
+            <button type="button" role="radio" data-val="1">1</button>
+            <button type="button" role="radio" data-val="2">2</button>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="sect">
+      <summary data-i18n="v.backup">სარეზერვო ასლი</summary>
+      <div class="sect-body">
+        <textarea class="io" id="ioBox" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off"></textarea>
+        <div class="actions">
+          <button type="button" class="btn" data-act="export"><span data-i18n="v.export">ასლის აღება</span></button>
+          <button type="button" class="btn" data-act="import"><span data-i18n="v.import">ჩატვირთვა</span></button>
+        </div>
+        <button type="button" class="btn ghost danger" data-act="reset"><span data-i18n="v.reset">საწყის მნიშვნელობებზე დაბრუნება</span></button>
+      </div>
+    </details>
+
+    <p class="hint" data-i18n="v.note">პარამეტრები ინახება ამ მოწყობილობაზე. განზომილებები ყოველ გახსნაზე ცარიელია.</p>
+  </section>
+</main>
+
+<footer class="dock">
+  <div class="result" id="resultBar">
+    <div class="result-row">
+      <button type="button" class="result-main" id="resultMain" aria-expanded="false" aria-controls="breakdown">
+        <span class="result-left">
+          <span class="result-label" data-i18n="res.label">ჯამი · დღგ ჩათვლით</span>
+          <span class="total-gel" id="totalGel" aria-hidden="true">0.00 ₾</span>
+          <span class="total-usd" id="totalUsd" aria-hidden="true">$0.00</span>
+        </span>
+        <span class="round-btn chev" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><polyline points="6 15 12 9 18 15"/></svg>
+        </span>
+      </button>
+      <button type="button" class="round-btn copy-btn" data-act="copy" id="copyBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5.5 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v.5"/></svg>
+      </button>
+    </div>
+    <div class="breakdown" id="breakdown" hidden></div>
+  </div>
+
+  <nav class="tabbar" role="tablist">
+    <button type="button" id="tab-calc" role="tab" aria-selected="true" aria-controls="view-calc" data-tab="calc">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2.5" width="16" height="19" rx="3"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8.5" y1="12" x2="8.5" y2="12"/><line x1="12" y1="12" x2="12" y2="12"/><line x1="15.5" y1="12" x2="15.5" y2="12"/><line x1="8.5" y1="16.5" x2="8.5" y2="16.5"/><line x1="12" y1="16.5" x2="12" y2="16.5"/><line x1="15.5" y1="16.5" x2="15.5" y2="16.5"/></svg>
+      <span data-i18n="tab.calc">კალკულატორი</span>
+    </button>
+    <button type="button" id="tab-vars" role="tab" aria-selected="false" aria-controls="view-vars" data-tab="vars">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="10" cy="7" r="2.6"/><circle cx="16" cy="17" r="2.6"/></svg>
+      <span data-i18n="tab.vars">პარამეტრები</span>
+    </button>
+  </nav>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<span class="sr-only" id="srTotal" aria-live="polite"></span>
+
+<script>
+"use strict";
+(function () {
+
+/* ============================================================
+   CONFIG — every pricing constant lives here and nowhere else.
+   Carried over verbatim from the original GBOX_multiple.html.
+   Base prices are USD per m2 and already include VAT.
+   ============================================================ */
+const DEFAULTS = {
+  rate: 2.75,                                   // USD -> GEL
+  price: { "3": { grey: 0.39, white: 0.41 },    // USD / m2, VAT included
+           "5": { grey: 0.63, white: 0.65 } },
+  flap:  40,                                    // mm added to box blank length
+  allow: { "3": 2, "5": 4 },                    // mm added to box blank width
+  x2:    { base: 0.57, decay: 0.00008, threshold: 10000, above: 0.15 },
+  def:   { type: "box", layers: "3", color: "grey" },
+  lang:  "ka",
+  dec:   2
+};
+
+const STORE_KEY = "gbox.settings.v1";
+
+/* ============================================================
+   I18N
+   ============================================================ */
+const I18N = {
+  ka: {
+    "app.sub":"ფასის კალკულატორი",
+    "tab.calc":"კალკულატორი","tab.vars":"პარამეტრები",
+    "card.product":"პროდუქტი",
+    "type.box":"ყუთი","type.sheet":"ლისტი",
+    "layers.3":"3 ფენა","layers.5":"5 ფენა",
+    "color.grey":"რუხი","color.white":"თეთრი",
+    "f.L":"სიგრძე, მმ","f.W":"სიგანე, მმ","f.H":"სიმაღლე, მმ","f.qty":"რაოდენობა, ც",
+    "a.remove":"პროდუქტის წაშლა","a.type":"ტიპი","a.layers":"ფენა","a.color":"ფერი",
+    "a.copy":"ფასის ასლის აღება","a.breakdown":"დეტალების ჩვენება",
+    "act.add":"+ პროდუქტი","act.clear":"გასუფთავება",
+    "res.label":"ჯამი · დღგ ჩათვლით",
+    "bd.products":"პროდუქტები","bd.summary":"შეჯამება",
+    "bd.area":"ჯამური ფართობი","bd.x2":"ფაქტორი x2","bd.markup":"კოეფიციენტი",
+    "bd.qty":"სულ რაოდენობა","bd.usd":"ჯამი (USD)","bd.empty":"შეავსე განზომილებები",
+    "hint.tip":"მინიშნება: სიგრძის ველში ჩაწერე 500x300x200 — ავტომატურად გაიყოფა.",
+    "hint.x2":"ფასდაკლების ფაქტორი ითვლება ყველა პროდუქტის ჯამურ ფართობზე, ამიტომ ახალი პროდუქტის დამატება ცვლის დანარჩენების ფასსაც.",
+    "v.rate":"კურსი","v.rate.f":"კურსი (USD → GEL)",
+    "v.prices":"ბაზისური ფასები","v.prices.note":"USD / მ², დღგ ჩათვლით.",
+    "v.p3g":"3 ფენა · რუხი","v.p3w":"3 ფენა · თეთრი","v.p5g":"5 ფენა · რუხი","v.p5w":"5 ფენა · თეთრი",
+    "v.constr":"ყუთის კონსტრუქცია","v.flap":"დანამატი სიგრძეზე (+მმ)",
+    "v.a3":"სიგანეზე · 3 ფენა (+მმ)","v.a5":"სიგანეზე · 5 ფენა (+მმ)",
+    "v.x2":"ფასდაკლების ფაქტორი (x2)","v.x2base":"საბაზისო","v.x2decay":"კლების კოეფ.",
+    "v.x2thr":"ზღვარი (მ²)","v.x2above":"ზღვარს ზემოთ",
+    "v.defaults":"ნაგულისხმევი მნიშვნელობები","v.defaults.note":"ახალი პროდუქტის ბარათი ამ პარამეტრებით იხსნება.",
+    "v.display":"ჩვენება","v.lang":"ენა","v.dec":"ათწილადი (₾)",
+    "v.backup":"სარეზერვო ასლი","v.export":"ასლის აღება","v.import":"ჩატვირთვა",
+    "v.reset":"საწყის მნიშვნელობებზე დაბრუნება",
+    "v.note":"პარამეტრები ინახება ამ მოწყობილობაზე. განზომილებები ყოველ გახსნაზე ცარიელია.",
+    "q.qty":"რაოდენობა","q.unit":"ერთეული","q.line":"ჯამი","q.total":"სულ","q.vat":"დღგ ჩათვლით",
+    "u.mm":"მმ","u.pcs":"ც","u.m2":"მ²","u.per":"/ც",
+    "t.copied":"დაკოპირდა ✓","t.nothing":"ჯერ არაფერია გამოსათვლელი","t.saved":"ჩაიტვირთა ✓","t.bad":"არასწორი მონაცემი",
+    "c.clear":"წავშალო ყველა განზომილება?","c.reset":"დავაბრუნო ყველა პარამეტრი საწყის მნიშვნელობაზე?",
+    "x2.now":"ახლა:","x2.warn":"⚠ ფაქტორი უნდა იყოს 1-ზე ნაკლები."
+  },
+  en: {
+    "app.sub":"Price calculator",
+    "tab.calc":"Calculator","tab.vars":"Variables",
+    "card.product":"Product",
+    "type.box":"Box","type.sheet":"Sheet",
+    "layers.3":"3-layer","layers.5":"5-layer",
+    "color.grey":"Grey","color.white":"White",
+    "f.L":"Length, mm","f.W":"Width, mm","f.H":"Height, mm","f.qty":"Quantity, pcs",
+    "a.remove":"Remove product","a.type":"Type","a.layers":"Layers","a.color":"Colour",
+    "a.copy":"Copy quote","a.breakdown":"Show breakdown",
+    "act.add":"+ Product","act.clear":"Clear",
+    "res.label":"Total · VAT incl.",
+    "bd.products":"Products","bd.summary":"Summary",
+    "bd.area":"Combined area","bd.x2":"Factor x2","bd.markup":"Markup",
+    "bd.qty":"Total quantity","bd.usd":"Total (USD)","bd.empty":"Enter dimensions",
+    "hint.tip":"Tip: type 500x300x200 into the length field — it splits automatically.",
+    "hint.x2":"The discount factor is derived from the combined area of every product, so adding a product also changes the price of the others.",
+    "v.rate":"Exchange rate","v.rate.f":"Rate (USD → GEL)",
+    "v.prices":"Base prices","v.prices.note":"USD per m², VAT included.",
+    "v.p3g":"3-layer · Grey","v.p3w":"3-layer · White","v.p5g":"5-layer · Grey","v.p5w":"5-layer · White",
+    "v.constr":"Box construction","v.flap":"Length allowance (+mm)",
+    "v.a3":"Width · 3-layer (+mm)","v.a5":"Width · 5-layer (+mm)",
+    "v.x2":"Discount factor (x2)","v.x2base":"Base","v.x2decay":"Decay",
+    "v.x2thr":"Threshold (m²)","v.x2above":"Above threshold",
+    "v.defaults":"Defaults for new products","v.defaults.note":"New product cards open with these settings.",
+    "v.display":"Display","v.lang":"Language","v.dec":"Decimals (₾)",
+    "v.backup":"Backup","v.export":"Export","v.import":"Import",
+    "v.reset":"Reset everything to defaults",
+    "v.note":"Settings are stored on this device. Dimensions start empty every time.",
+    "q.qty":"Quantity","q.unit":"Unit","q.line":"Line total","q.total":"TOTAL","q.vat":"VAT incl.",
+    "u.mm":"mm","u.pcs":"pcs","u.m2":"m²","u.per":"/pc",
+    "t.copied":"Copied ✓","t.nothing":"Nothing to calculate yet","t.saved":"Loaded ✓","t.bad":"Invalid data",
+    "c.clear":"Clear all dimensions?","c.reset":"Reset every setting to its default value?",
+    "x2.now":"Now:","x2.warn":"⚠ The factor must be below 1."
+  }
+};
+let LANG = "ka";
+const t = k => (I18N[LANG] && I18N[LANG][k]) || (I18N.ka[k]) || k;
+
+/* ============================================================
+   PURE HELPERS
+   ============================================================ */
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+/* Postel's law: accept "2,75", "2.75", spaces, stray characters. */
+function parseNum(v){
+  if (typeof v === "number") return Number.isFinite(v) ? v : NaN;
+  if (v == null) return NaN;
+  let s = String(v).replace(/[\s  ']/g, "").replace(/,/g, ".").replace(/[^0-9.\-]/g, "");
+  const first = s.indexOf(".");
+  if (first !== -1) s = s.slice(0, first + 1) + s.slice(first + 1).replace(/\./g, "");
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+/* Locale-independent: space grouping, dot decimal. Never surprises. */
+function fmtNum(n, d){
+  if (!Number.isFinite(n)) return "—";
+  const neg = n < 0;
+  const s = Math.abs(n).toFixed(d);
+  const parts = s.split(".");
+  const int = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return (neg ? "-" : "") + int + (parts[1] ? "." + parts[1] : "");
+}
+
+/* ============================================================
+   PRICING ENGINE — pure, no DOM. Mirrors the original exactly.
+   ============================================================ */
+function blankSize(row, s){
+  if (row.type === "sheet") return { Ltot: row.L, Wtot: row.W };
+  const allow = parseNum(s.allow[row.layers]);
+  return {
+    Ltot: (row.L + row.W) * 2 + parseNum(s.flap),
+    Wtot: row.H + row.W + (Number.isFinite(allow) ? allow : 0)
+  };
+}
+
+function rowComplete(row){
+  const need = row.type === "sheet" ? ["L","W","qty"] : ["L","W","H","qty"];
+  return need.every(k => Number.isFinite(row[k]) && row[k] > 0);
+}
+
+function factorFor(area, s){
+  const c = s.x2;
+  const thr = parseNum(c.threshold), above = parseNum(c.above);
+  const base = parseNum(c.base), decay = parseNum(c.decay);
+  let v = (Number.isFinite(thr) && area > thr)
+    ? above
+    : base * Math.exp(-decay * area);
+  if (!Number.isFinite(v)) v = 0;
+  /* Guard the original lacks: x2 >= 1 divides by zero or flips the sign. */
+  return Math.min(v, 0.999999);
+}
+
+function computeQuote(rows, s){
+  const rate = parseNum(s.rate);
+  const out = rows.map(r => {
+    if (!rowComplete(r)) return { ok:false };
+    const b = blankSize(r, s);
+    if (!Number.isFinite(b.Ltot) || !Number.isFinite(b.Wtot)) return { ok:false };
+    const m2 = b.Ltot * b.Wtot * 0.000001;
+    return { ok:true, Ltot:b.Ltot, Wtot:b.Wtot, m2, area:m2 * r.qty };
+  });
+
+  /* Pass 1: combined area over every complete row. */
+  let areaTotal = 0;
+  out.forEach(o => { if (o.ok) areaTotal += o.area; });
+
+  /* Pass 2: one shared factor prices every row. */
+  const x2 = factorFor(areaTotal, s);
+  const markup = 1 / (1 - x2);
+  let totalUSD = 0, totalGEL = 0, totalQty = 0, count = 0;
+
+  out.forEach((o, i) => {
+    if (!o.ok) return;
+    const r = rows[i];
+    const base = parseNum((s.price[r.layers] || {})[r.color]);
+    if (!Number.isFinite(base)) { o.ok = false; return; }
+    /* Written as base / (1 - x2) * m2, in that exact order, so the
+       floating-point result is bit-identical to the original file. */
+    o.unitUSD = base / (1 - x2) * o.m2;
+    o.unitGEL = o.unitUSD * (Number.isFinite(rate) && rate > 0 ? rate : 0);
+    o.lineUSD = o.unitUSD * r.qty;
+    o.lineGEL = o.unitGEL * r.qty;
+    totalUSD += o.lineUSD; totalGEL += o.lineGEL; totalQty += r.qty; count++;
+  });
+
+  return { rows: out, areaTotal, x2, markup, totalUSD, totalGEL, totalQty, count };
+}
+
+/* Exposed for the automated parity test against the original file. */
+window.GBOX = { DEFAULTS, parseNum, computeQuote, factorFor, blankSize };
+
+/* ============================================================
+   STORAGE — every access guarded: localStorage throws outright
+   in iOS private browsing.
+   ============================================================ */
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+};
+
+function sanitize(raw){
+  const s = clone(DEFAULTS);
+  if (!raw || typeof raw !== "object") return s;
+  const num = (v, fb) => { const n = parseNum(v); return Number.isFinite(n) ? n : fb; };
+  s.rate = num(raw.rate, s.rate);
+  s.flap = num(raw.flap, s.flap);
+  ["3","5"].forEach(L => {
+    if (raw.price && raw.price[L]){
+      s.price[L].grey  = num(raw.price[L].grey,  s.price[L].grey);
+      s.price[L].white = num(raw.price[L].white, s.price[L].white);
+    }
+    if (raw.allow) s.allow[L] = num(raw.allow[L], s.allow[L]);
+  });
+  if (raw.x2) ["base","decay","threshold","above"].forEach(k => { s.x2[k] = num(raw.x2[k], s.x2[k]); });
+  if (raw.def){
+    if (raw.def.type === "box" || raw.def.type === "sheet") s.def.type = raw.def.type;
+    if (String(raw.def.layers) === "3" || String(raw.def.layers) === "5") s.def.layers = String(raw.def.layers);
+    if (raw.def.color === "grey" || raw.def.color === "white") s.def.color = raw.def.color;
+  }
+  if (raw.lang === "ka" || raw.lang === "en") s.lang = raw.lang;
+  const d = parseInt(raw.dec, 10);
+  if (d === 0 || d === 1 || d === 2) s.dec = d;
+  return s;
+}
+
+function loadSettings(){
+  try { return sanitize(JSON.parse(store.get(STORE_KEY))); }
+  catch (e) { return clone(DEFAULTS); }
+}
+function saveSettings(){ store.set(STORE_KEY, JSON.stringify(state.settings)); }
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = { tab: "calc", settings: loadSettings(), rows: [], breakdown: false };
+let nextId = 0;
+let lastQuote = null;
+const cardEls = new Map();
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const $  = sel => document.querySelector(sel);
+const el = {
+  cards: $("#cards"), scroll: $("#scroll"),
+  viewCalc: $("#view-calc"), viewVars: $("#view-vars"),
+  resultBar: $("#resultBar"), resultMain: $("#resultMain"),
+  totalGel: $("#totalGel"), totalUsd: $("#totalUsd"),
+  breakdown: $("#breakdown"), srTotal: $("#srTotal"),
+  ratePill: $("#ratePill"), ratePillVal: $("#ratePillVal"),
+  toast: $("#toast"), ioBox: $("#ioBox"),
+  x2Out: $("#x2Out"), formulaOut: $("#formulaOut")
+};
+
+const GEL = "₾";
+const fmtGEL = v => fmtNum(v, state.settings.dec) + " " + GEL;
+const fmtUSD = v => "$" + fmtNum(v, 2);
+
+function toNumeric(row){
+  return {
+    type: row.type, layers: row.layers, color: row.color,
+    L: parseNum(row.raw.L), W: parseNum(row.raw.W),
+    H: parseNum(row.raw.H), qty: parseNum(row.raw.qty)
+  };
+}
+
+/* ============================================================
+   I18N APPLICATION
+   ============================================================ */
+function applyI18n(){
+  LANG = state.settings.lang;
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("[data-i18n]").forEach(n => { n.textContent = t(n.getAttribute("data-i18n")); });
+  el.resultMain.setAttribute("aria-label", t("a.breakdown"));
+  const cb = $("#copyBtn"); if (cb) cb.setAttribute("aria-label", t("a.copy"));
+}
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+function fieldHTML(name){
+  return '<label class="fld" data-name="' + name + '">' +
+           '<span>' + t("f." + name) + '</span>' +
+           '<input name="' + name + '" type="text" inputmode="decimal" autocomplete="off" ' +
+             'autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="—" ' +
+             'enterkeyhint="' + (name === "qty" ? "done" : "next") + '">' +
+         '</label>';
+}
+
+function segHTML(field, opts){
+  return '<div class="seg" role="radiogroup" data-field="' + field + '" aria-label="' + t("a." + field) + '">' +
+    opts.map(o => '<button type="button" role="radio" data-val="' + o.v + '" aria-checked="false">' + t(o.k) + '</button>').join("") +
+  '</div>';
+}
+
+function mountCard(row){
+  const node = document.createElement("section");
+  node.className = "card";
+  node.dataset.id = String(row.id);
+  node.setAttribute("role", "group");
+  node.innerHTML =
+    '<div class="card-head">' +
+      '<span class="card-title"></span>' +
+      '<button type="button" class="icon-btn" data-act="remove" aria-label="' + t("a.remove") + '">&times;</button>' +
+    '</div>' +
+    segHTML("type", [{v:"box",k:"type.box"},{v:"sheet",k:"type.sheet"}]) +
+    '<div class="segrow">' +
+      segHTML("layers", [{v:"3",k:"layers.3"},{v:"5",k:"layers.5"}]) +
+      segHTML("color",  [{v:"grey",k:"color.grey"},{v:"white",k:"color.white"}]) +
+    '</div>' +
+    '<div class="grid">' + fieldHTML("L") + fieldHTML("W") + fieldHTML("H") + fieldHTML("qty") + '</div>' +
+    '<div class="card-out">' +
+      '<span class="out-meta"></span>' +
+      '<span class="out-total is-empty">—</span>' +
+    '</div>';
+  el.cards.appendChild(node);
+  cardEls.set(row.id, node);
+  syncCard(row);
+}
+
+function syncCard(row){
+  const node = cardEls.get(row.id);
+  if (!node) return;
+  node.classList.toggle("is-sheet", row.type === "sheet");
+  node.querySelectorAll(".seg").forEach(seg => {
+    const f = seg.dataset.field;
+    seg.querySelectorAll("button").forEach(b => {
+      b.setAttribute("aria-checked", String(b.dataset.val === String(row[f])));
+    });
+  });
+  node.querySelectorAll("input").forEach(i => {
+    const v = row.raw[i.name] || "";
+    if (i.value !== v) i.value = v;
+  });
+}
+
+function rebuildCards(){
+  el.cards.innerHTML = "";
+  cardEls.clear();
+  state.rows.forEach(mountCard);
+  paint();
+}
+
+function addRow(focus){
+  const d = state.settings.def;
+  const row = { id: ++nextId, type: d.type, layers: String(d.layers), color: d.color,
+                raw: { L:"", W:"", H:"", qty:"" } };
+  state.rows.push(row);
+  mountCard(row);
+  paint();
+  if (focus !== false){
+    const node = cardEls.get(row.id);
+    node.scrollIntoView({ block: "nearest" });
+    const first = node.querySelector('input[name="L"]');
+    if (first) first.focus();
+  }
+}
+
+function removeRow(id){
+  const i = state.rows.findIndex(r => r.id === id);
+  if (i === -1) return;
+  const node = cardEls.get(id);
+  if (node) node.remove();
+  cardEls.delete(id);
+  state.rows.splice(i, 1);
+  if (!state.rows.length) addRow(false); else paint();
+}
+
+/* ============================================================
+   PAINT — runs synchronously on every keystroke. The whole
+   computation is a few microseconds, so debouncing would only
+   add latency (Doherty threshold).
+   ============================================================ */
+function paint(){
+  const s = state.settings;
+  const nrows = state.rows.map(toNumeric);
+  const q = computeQuote(nrows, s);
+  lastQuote = q;
+  const single = state.rows.length === 1 ? "1" : "0";
+
+  state.rows.forEach((row, i) => {
+    const node = cardEls.get(row.id);
+    if (!node) return;
+    node.dataset.single = single;
+    node.querySelector(".card-title").textContent = t("card.product") + " " + (i + 1);
+    const o = q.rows[i];
+    const meta  = node.querySelector(".out-meta");
+    const total = node.querySelector(".out-total");
+    if (o && o.ok){
+      meta.textContent = fmtNum(o.Ltot, 0) + " × " + fmtNum(o.Wtot, 0) + " " + t("u.mm") +
+                         " · " + fmtNum(o.m2, 4) + " " + t("u.m2") +
+                         " · " + fmtGEL(o.unitGEL) + t("u.per");
+      total.textContent = fmtGEL(o.lineGEL);
+      total.classList.remove("is-empty");
+    } else {
+      meta.textContent = "";
+      total.textContent = "—";
+      total.classList.add("is-empty");
+    }
+  });
+
+  setHero(q.totalGEL, q.count > 0);
+  el.totalUsd.textContent = fmtUSD(q.totalUSD);
+  el.ratePillVal.textContent = fmtNum(parseNum(s.rate), 2) + " " + GEL;
+  renderBreakdown(q);
+  renderReadouts(q);
+  announce(q);
+}
+
+/* Hero count-up. Cheap, cancellable, skipped under reduced motion. */
+let heroRAF = 0, heroShown = 0;
+function setHero(target, has){
+  if (heroRAF) cancelAnimationFrame(heroRAF);
+  el.totalGel.classList.toggle("is-empty", !has);
+  el.totalUsd.classList.toggle("is-hidden", !has);
+  if (!has){ heroShown = 0; el.totalGel.textContent = "—"; heroRAF = 0; return; }
+  const to = target;
+  if (reduceMotion || Math.abs(to - heroShown) < 0.005){
+    heroShown = to;
+    el.totalGel.textContent = fmtGEL(to);
+    return;
+  }
+  const from = heroShown, t0 = performance.now(), dur = 200;
+  const step = now => {
+    const p = Math.min(1, (now - t0) / dur);
+    const e = 1 - Math.pow(1 - p, 3);
+    heroShown = from + (to - from) * e;
+    el.totalGel.textContent = fmtGEL(heroShown);
+    if (p < 1) heroRAF = requestAnimationFrame(step);
+    else { heroShown = to; el.totalGel.textContent = fmtGEL(to); heroRAF = 0; }
+  };
+  heroRAF = requestAnimationFrame(step);
+}
+
+/* Screen readers get the settled value only, not every tween frame. */
+let srTimer = 0;
+function announce(q){
+  clearTimeout(srTimer);
+  srTimer = setTimeout(() => {
+    el.srTotal.textContent = q.count ? (t("res.label") + " " + fmtGEL(q.totalGEL)) : "";
+  }, 600);
+}
+
+function bdRow(k, v, cls){
+  return '<div class="bd-row' + (cls ? " " + cls : "") + '"><span class="bd-k">' + k +
+         '</span><span class="bd-v">' + v + '</span></div>';
+}
+
+function renderBreakdown(q){
+  if (!state.breakdown) return;
+  if (!q.count){ el.breakdown.innerHTML = bdRow(t("bd.empty"), "—"); return; }
+  let html = '<div class="bd-row head"><span>' + t("bd.products") + '</span><span></span></div>';
+  let n = 0;
+  state.rows.forEach((row, i) => {
+    const o = q.rows[i];
+    if (!o || !o.ok) return;
+    n++;
+    const r = toNumeric(row);
+    html += bdRow(n + ". " + t("type." + row.type) + " · " + fmtNum(r.qty, 0) + " " + t("u.pcs") +
+                  " · " + fmtNum(o.area, 2) + " " + t("u.m2"), fmtGEL(o.lineGEL));
+  });
+  html += '<div class="bd-row head"><span>' + t("bd.summary") + '</span><span></span></div>';
+  html += bdRow(t("bd.area"),   fmtNum(q.areaTotal, 2) + " " + t("u.m2"));
+  html += bdRow(t("bd.x2"),     fmtNum(q.x2, 4));
+  html += bdRow(t("bd.markup"), "×" + fmtNum(q.markup, 3));
+  html += bdRow(t("bd.qty"),    fmtNum(q.totalQty, 0) + " " + t("u.pcs"));
+  html += bdRow(t("bd.usd"),    fmtUSD(q.totalUSD));
+  el.breakdown.innerHTML = html;
+}
+
+function renderReadouts(q){
+  const s = state.settings;
+  const area = q ? q.areaTotal : 0;
+  const x2 = factorFor(area, s);
+  const warn = x2 >= 0.999999 ? ' <b>' + t("x2.warn") + '</b>' : "";
+  el.x2Out.innerHTML = t("x2.now") + " <b>" + fmtNum(area, 2) + " " + t("u.m2") + "</b> → x2 = <b>" +
+                       fmtNum(x2, 4) + "</b> → <b>×" + fmtNum(1 / (1 - x2), 3) + "</b>" + warn;
+  const f = fmtNum(parseNum(s.flap), 0);
+  const a3 = fmtNum(parseNum(s.allow["3"]), 0), a5 = fmtNum(parseNum(s.allow["5"]), 0);
+  const boxL = "((L + W) × 2 + " + f + ")";
+  el.formulaOut.innerHTML =
+    t("type.box") + " · " + t("layers.3") + ": <b>" + boxL + " × (H + W + " + a3 + ")</b><br>" +
+    t("type.box") + " · " + t("layers.5") + ": <b>" + boxL + " × (H + W + " + a5 + ")</b><br>" +
+    t("type.sheet") + ": <b>L × W</b>";
+}
+
+/* ============================================================
+   FAST ENTRY — "500x300x200" typed into Length splits itself.
+   Comma is NOT a separator: it is a decimal point here.
+   ============================================================ */
+const SPLIT_RE = /[xX×*\/\s]+/;
+
+/* Typing "x" or a space means "this number is done": commit it and jump
+   to the next field. Pasting "400x300x200" fills three fields at once.
+   Both go through the same path. A comma is never a separator here — it
+   is a decimal point. */
+function trySplit(row, name, rawValue){
+  if (!SPLIT_RE.test(rawValue)) return null;
+  const order = row.type === "sheet" ? ["L","W","qty"] : ["L","W","H","qty"];
+  const start = order.indexOf(name);
+  if (start === -1) return null;
+  const parts = rawValue.split(SPLIT_RE).filter(Boolean);
+  if (!parts.length){ row.raw[name] = ""; return { next: null }; }
+  if (parts.some(p => !Number.isFinite(parseNum(p)))) return null;
+  const slots = order.slice(start);
+  const filled = Math.min(parts.length, slots.length);
+  for (let i = 0; i < filled; i++) row.raw[slots[i]] = parts[i].replace(/,/g, ".");
+  return { next: slots[filled] || null };
+}
+
+/* ============================================================
+   EVENTS — cards
+   ============================================================ */
+function rowFromEvent(e){
+  const card = e.target.closest(".card");
+  if (!card) return null;
+  return state.rows.find(r => r.id === Number(card.dataset.id)) || null;
+}
+
+el.cards.addEventListener("input", e => {
+  const input = e.target.closest("input");
+  if (!input) return;
+  const row = rowFromEvent(e);
+  if (!row) return;
+  row.raw[input.name] = input.value;
+  const jump = trySplit(row, input.name, input.value);
+  if (jump){
+    syncCard(row);
+    const card = cardEls.get(row.id);
+    const target = jump.next && card.querySelector('input[name="' + jump.next + '"]');
+    if (target){ programmaticFocus = true; target.focus(); } else input.blur();
+  }
+  paint();
+});
+
+el.cards.addEventListener("click", e => {
+  const row = rowFromEvent(e);
+  if (!row) return;
+  const remove = e.target.closest('[data-act="remove"]');
+  if (remove){ removeRow(row.id); return; }
+  const btn = e.target.closest(".seg button");
+  if (btn){
+    row[btn.closest(".seg").dataset.field] = btn.dataset.val;
+    syncCard(row);
+    paint();
+  }
+});
+
+/* Tapping a filled field selects it, so overwriting a dimension is one
+   tap and type. A jump made by the splitter must NOT select, or the next
+   keystroke would wipe the value we just committed. */
+let programmaticFocus = false;
+el.cards.addEventListener("focusin", e => {
+  const input = e.target.closest("input");
+  if (!input) return;
+  if (programmaticFocus){ programmaticFocus = false; return; }
+  const atFocus = input.value;
+  if (!atFocus) return;
+  /* Only select if nothing was typed in the meantime — otherwise a fast
+     first keystroke would be swallowed by the selection. */
+  requestAnimationFrame(() => {
+    try {
+      if (document.activeElement === input && input.value === atFocus) input.select();
+    } catch (err) {}
+  });
+});
+
+/* Enter walks down the card, then dismisses the keyboard. */
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  const input = e.target.closest && e.target.closest(".card input");
+  if (!input) return;
+  e.preventDefault();
+  const card = input.closest(".card");
+  const visible = Array.from(card.querySelectorAll("input")).filter(i => i.offsetParent !== null);
+  const next = visible[visible.indexOf(input) + 1];
+  if (next) next.focus(); else input.blur();
+});
+
+/* ============================================================
+   EVENTS — global actions
+   ============================================================ */
+document.addEventListener("click", e => {
+  const act = e.target.closest("[data-act]");
+  if (!act || act.closest(".card")) return;
+  switch (act.dataset.act){
+    case "add":       addRow(true); break;
+    case "clear":     doClear(); break;
+    case "copy":      doCopy(); break;
+    case "goto-rate": showTab("vars"); $("#sect-rate").open = true;
+                      $('[data-set="rate"]').focus(); break;
+    case "export":    doExport(); break;
+    case "import":    doImport(); break;
+    case "reset":     doReset(); break;
+  }
+});
+
+el.resultMain.addEventListener("click", () => {
+  state.breakdown = !state.breakdown;
+  el.breakdown.hidden = !state.breakdown;
+  el.resultBar.classList.toggle("open", state.breakdown);
+  el.resultMain.setAttribute("aria-expanded", String(state.breakdown));
+  if (state.breakdown) renderBreakdown(lastQuote || computeQuote([], state.settings));
+});
+
+document.querySelectorAll(".tabbar [data-tab]").forEach(b => {
+  b.addEventListener("click", () => showTab(b.dataset.tab));
+});
+
+function showTab(name){
+  state.tab = name;
+  el.viewCalc.hidden = name !== "calc";
+  el.viewVars.hidden = name !== "vars";
+  el.resultBar.hidden = name !== "calc";
+  document.querySelectorAll(".tabbar [data-tab]").forEach(b => {
+    b.setAttribute("aria-selected", String(b.dataset.tab === name));
+  });
+  el.scroll.scrollTop = 0;
+}
+
+function doClear(){
+  const hasData = state.rows.some(r => Object.keys(r.raw).some(k => r.raw[k] !== ""));
+  if (hasData && !window.confirm(t("c.clear"))) return;
+  state.rows = [];
+  el.cards.innerHTML = "";
+  cardEls.clear();
+  heroShown = 0;
+  addRow(false);
+}
+
+/* ============================================================
+   COPY — customer-safe: no m2, no USD, no discount factor.
+   ============================================================ */
+function quoteText(){
+  const s = state.settings;
+  const nrows = state.rows.map(toNumeric);
+  const q = computeQuote(nrows, s);
+  if (!q.count) return "";
+  const lines = [];
+  let n = 0;
+  state.rows.forEach((row, i) => {
+    const o = q.rows[i];
+    if (!o || !o.ok) return;
+    n++;
+    const r = nrows[i];
+    const dims = row.type === "sheet"
+      ? fmtNum(r.L, 0) + "×" + fmtNum(r.W, 0)
+      : fmtNum(r.L, 0) + "×" + fmtNum(r.W, 0) + "×" + fmtNum(r.H, 0);
+    lines.push(n + ". " + t("type." + row.type) + " · " + t("layers." + row.layers) + " · " +
+               t("color." + row.color) + " — " + dims + " " + t("u.mm"));
+    lines.push("   " + t("q.qty") + ": " + fmtNum(r.qty, 0) + " " + t("u.pcs") +
+               " · " + t("q.unit") + ": " + fmtGEL(o.unitGEL));
+    lines.push("   " + t("q.line") + ": " + fmtGEL(o.lineGEL));
+    lines.push("");
+  });
+  lines.push(t("q.total") + ": " + fmtGEL(q.totalGEL) + " (" + t("q.vat") + ")");
+  return lines.join("\n");
+}
+
+function copyText(text){
+  if (navigator.clipboard && window.isSecureContext){
+    return navigator.clipboard.writeText(text);
+  }
+  return new Promise((resolve, reject) => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    ok ? resolve() : reject(new Error("copy failed"));
+  });
+}
+
+function doCopy(){
+  const text = quoteText();
+  if (!text){ toast(t("t.nothing")); return; }
+  copyText(text).then(() => toast(t("t.copied"))).catch(() => toast(t("t.bad")));
+}
+
+let toastTimer = 0;
+function toast(msg){
+  el.toast.textContent = msg;
+  el.toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.toast.classList.remove("show"), 1700);
+}
+
+/* ============================================================
+   VARIABLES TAB
+   ============================================================ */
+function getPath(o, p){ return p.split(".").reduce((a, k) => (a == null ? a : a[k]), o); }
+function setPath(o, p, v){
+  const ks = p.split(".");
+  let cur = o;
+  for (let i = 0; i < ks.length - 1; i++) cur = cur[ks[i]];
+  cur[ks[ks.length - 1]] = v;
+}
+
+function syncVars(){
+  document.querySelectorAll("[data-set]").forEach(i => {
+    if (document.activeElement === i) return;
+    const v = parseNum(getPath(state.settings, i.dataset.set));
+    i.value = Number.isFinite(v) ? String(v) : "";
+  });
+  const s = state.settings;
+  document.querySelectorAll("[data-defset]").forEach(seg => {
+    const f = seg.dataset.defset;
+    seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-checked", String(b.dataset.val === String(s.def[f]))));
+  });
+  document.querySelectorAll("[data-langset] button").forEach(b => b.setAttribute("aria-checked", String(b.dataset.val === s.lang)));
+  document.querySelectorAll("[data-decset] button").forEach(b => b.setAttribute("aria-checked", String(b.dataset.val === String(s.dec))));
+}
+
+el.viewVars.addEventListener("input", e => {
+  const i = e.target.closest("[data-set]");
+  if (!i) return;
+  const v = parseNum(i.value);
+  if (!Number.isFinite(v)) return;          /* let the field be mid-edit */
+  setPath(state.settings, i.dataset.set, v);
+  saveSettings();
+  paint();
+});
+
+el.viewVars.addEventListener("blur", e => {
+  const i = e.target.closest && e.target.closest("[data-set]");
+  if (!i) return;
+  const v = parseNum(getPath(state.settings, i.dataset.set));
+  i.value = Number.isFinite(v) ? String(v) : "";
+}, true);
+
+el.viewVars.addEventListener("click", e => {
+  const btn = e.target.closest(".seg button");
+  if (!btn) return;
+  const seg = btn.closest(".seg");
+  if (seg.dataset.defset){
+    state.settings.def[seg.dataset.defset] = btn.dataset.val;
+  } else if (seg.dataset.langset){
+    state.settings.lang = btn.dataset.val;
+    applyI18n();
+    rebuildCards();
+  } else if (seg.dataset.decset){
+    state.settings.dec = parseInt(btn.dataset.val, 10);
+    heroShown = NaN;
+  } else return;
+  saveSettings();
+  syncVars();
+  paint();
+});
+
+function doExport(){
+  el.ioBox.value = JSON.stringify(state.settings, null, 2);
+  copyText(el.ioBox.value).then(() => toast(t("t.copied"))).catch(() => {});
+}
+
+function doImport(){
+  let parsed;
+  try { parsed = JSON.parse(el.ioBox.value); }
+  catch (e) { toast(t("t.bad")); return; }
+  state.settings = sanitize(parsed);
+  saveSettings();
+  applyI18n();
+  syncVars();
+  rebuildCards();
+  toast(t("t.saved"));
+}
+
+function doReset(){
+  if (!window.confirm(t("c.reset"))) return;
+  state.settings = clone(DEFAULTS);
+  saveSettings();
+  applyI18n();
+  syncVars();
+  el.ioBox.value = "";
+  rebuildCards();
+}
+
+/* ============================================================
+   VIEWPORT — keep the layout (and the price) above the iOS
+   keyboard instead of letting it slide underneath.
+   ============================================================ */
+function syncHeight(){
+  const vv = window.visualViewport;
+  const h = vv ? vv.height : window.innerHeight;
+  document.documentElement.style.setProperty("--app-h", h + "px");
+}
+if (window.visualViewport){
+  window.visualViewport.addEventListener("resize", syncHeight);
+  window.visualViewport.addEventListener("scroll", syncHeight);
+}
+window.addEventListener("resize", syncHeight);
+window.addEventListener("orientationchange", () => setTimeout(syncHeight, 250));
+document.addEventListener("focusin", () => {
+  setTimeout(() => {
+    if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+    syncHeight();
+  }, 120);
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+syncHeight();
+applyI18n();
+syncVars();
+showTab("calc");
+addRow(false);
+renderReadouts(lastQuote);
+
+})();
+</script>
+</body>
+</html>
