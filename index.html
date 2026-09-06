@@ -174,6 +174,19 @@ input,textarea{touch-action:manipulation}
 .card.is-sheet .fld[data-name="qty"]{grid-column:1 / -1}
 
 /* ---- per-card computed line ---- */
+/* Machine-limit warning. Red is used only here and nowhere else, so it
+   never competes with the green total. */
+.warn{
+  display:flex;flex-direction:column;gap:3px;
+  padding:8px 10px;border-radius:var(--r-sm);
+  background:color-mix(in srgb, var(--danger) 9%, transparent);
+  border:1px solid color-mix(in srgb, var(--danger) 34%, transparent);
+  font-size:12px;font-weight:650;line-height:1.45;color:var(--danger);
+  font-variant-numeric:tabular-nums lining-nums;
+}
+.warn[hidden]{display:none}
+.fld.over input{border-color:var(--danger)}
+.fld.over > span{color:var(--danger)}
 .card-out{
   display:flex;align-items:flex-end;justify-content:space-between;gap:10px;
   min-height:32px;padding-top:9px;border-top:1px solid var(--line);
@@ -207,7 +220,7 @@ input,textarea{touch-action:manipulation}
 .result-left{flex:1 1 auto;min-width:0;display:block}
 .copy-btn{flex:0 0 auto}
 .result-label,.total-gel,.total-usd{display:block}
-.result-label{font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-3)}
+.result-label{display:flex;align-items:baseline;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-3)}
 .total-gel{
   font-size:clamp(26px,8.6vw,35px);font-weight:800;letter-spacing:-.9px;line-height:1.12;
   color:var(--accent);
@@ -219,6 +232,8 @@ input,textarea{touch-action:manipulation}
 /* Reserve the row rather than removing it: the dock must not change
    height the moment the first price appears. */
 .total-usd.is-hidden{visibility:hidden}
+.lbl-warn{color:var(--danger);font-weight:800;flex:0 0 auto}
+.lbl-warn[hidden]{display:none}
 .round-btn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--ink-2)}
 .round-btn:active{background:var(--surface-2)}
 .chev{transition:transform .2s ease}
@@ -316,7 +331,6 @@ textarea.io{
       <button type="button" class="btn" data-act="add"><span data-i18n="act.add">+ პროდუქტი</span></button>
       <button type="button" class="btn ghost" data-act="clear"><span data-i18n="act.clear">გასუფთავება</span></button>
     </div>
-    <p class="hint" data-i18n="hint.tip">მინიშნება: სიგრძის ველში ჩაწერე 500x300x200 — ავტომატურად გაიყოფა.</p>
   </section>
 
   <!-- ========== TAB 2 — VARIABLES ========== -->
@@ -359,6 +373,19 @@ textarea.io{
             <input type="text" inputmode="decimal" data-set="allow.5" autocomplete="off" spellcheck="false"></label>
         </div>
         <div class="readout" id="formulaOut"></div>
+      </div>
+    </details>
+
+    <details class="sect">
+      <summary data-i18n="v.limits">დანადგარის შეზღუდვები</summary>
+      <div class="sect-body">
+        <label class="fld"><span data-i18n="v.maxLW">L+W არაუმეტეს (მმ)</span>
+          <input type="text" inputmode="decimal" data-set="limits.maxLW" autocomplete="off" spellcheck="false"></label>
+        <label class="fld"><span data-i18n="v.maxHW2">H+W/2 არაუმეტეს (მმ)</span>
+          <input type="text" inputmode="decimal" data-set="limits.maxHW2" autocomplete="off" spellcheck="false"></label>
+        <label class="fld"><span data-i18n="v.minBlankW">სლოტერის მინ. ფორმატი (მმ)</span>
+          <input type="text" inputmode="decimal" data-set="limits.minBlankW" autocomplete="off" spellcheck="false"></label>
+        <p class="hint" data-i18n="v.limits.note">ეხება მხოლოდ ყუთს. გაფრთხილება ფასს არ ცვლის.</p>
       </div>
     </details>
 
@@ -441,7 +468,10 @@ textarea.io{
     <div class="result-row">
       <button type="button" class="result-main" id="resultMain" aria-expanded="false" aria-controls="breakdown">
         <span class="result-left">
-          <span class="result-label" data-i18n="res.label">ჯამი · დღგ ჩათვლით</span>
+          <span class="result-label">
+            <span data-i18n="res.label">ჯამი · დღგ ჩათვლით</span>
+            <span class="lbl-warn" id="lblWarn" hidden></span>
+          </span>
           <span class="total-gel" id="totalGel" aria-hidden="true">0.00 ₾</span>
           <span class="total-usd" id="totalUsd" aria-hidden="true">$0.00</span>
         </span>
@@ -487,6 +517,9 @@ const DEFAULTS = {
   flap:  40,                                    // mm added to box blank length
   allow: { "3": 2, "5": 4 },                    // mm added to box blank width
   x2:    { base: 0.57, decay: 0.00008, threshold: 10000, above: 0.15 },
+  /* Machine limits, mm. Advisory only — they warn, they never touch the
+     price. Boxes only: a slotter does not run plain sheets. */
+  limits:{ maxLW: 1150, maxHW2: 800, minBlankW: 300 },
   def:   { type: "box", layers: "3", color: "grey" },
   lang:  "ka",
   dec:   2
@@ -513,7 +546,6 @@ const I18N = {
     "bd.products":"პროდუქტები","bd.summary":"შეჯამება",
     "bd.area":"ჯამური ფართობი","bd.x2":"ფაქტორი x2","bd.markup":"კოეფიციენტი",
     "bd.qty":"სულ რაოდენობა","bd.usd":"ჯამი (USD)","bd.empty":"შეავსე განზომილებები",
-    "hint.tip":"მინიშნება: სიგრძის ველში ჩაწერე 500x300x200 — ავტომატურად გაიყოფა.",
     "hint.x2":"ფასდაკლების ფაქტორი ითვლება ყველა პროდუქტის ჯამურ ფართობზე, ამიტომ ახალი პროდუქტის დამატება ცვლის დანარჩენების ფასსაც.",
     "v.rate":"კურსი","v.rate.f":"კურსი (USD → GEL)",
     "v.prices":"ბაზისური ფასები","v.prices.note":"USD / მ², დღგ ჩათვლით.",
@@ -522,13 +554,17 @@ const I18N = {
     "v.a3":"სიგანეზე · 3 ფენა (+მმ)","v.a5":"სიგანეზე · 5 ფენა (+მმ)",
     "v.x2":"ფასდაკლების ფაქტორი (x2)","v.x2base":"საბაზისო","v.x2decay":"კლების კოეფ.",
     "v.x2thr":"ზღვარი (მ²)","v.x2above":"ზღვარს ზემოთ",
+    "v.limits":"დანადგარის შეზღუდვები","v.maxLW":"L+W არაუმეტეს (მმ)",
+    "v.maxHW2":"H+W/2 არაუმეტეს (მმ)","v.minBlankW":"სლოტერის მინ. ფორმატი (მმ)",
+    "v.limits.note":"ეხება მხოლოდ ყუთს. გაფრთხილება ფასს არ ცვლის.",
+    "w.lw":"L+W","w.hw2":"H+W/2","w.blank":"ნამზადის სიგანე","w.max":"მაქს.","w.min":"მინ.",
     "v.defaults":"ნაგულისხმევი მნიშვნელობები","v.defaults.note":"ახალი პროდუქტის ბარათი ამ პარამეტრებით იხსნება.",
     "v.display":"ჩვენება","v.lang":"ენა","v.dec":"ათწილადი (₾)",
     "v.backup":"სარეზერვო ასლი","v.export":"ასლის აღება","v.import":"ჩატვირთვა",
     "v.reset":"საწყის მნიშვნელობებზე დაბრუნება",
     "v.note":"პარამეტრები ინახება ამ მოწყობილობაზე. განზომილებები ყოველ გახსნაზე ცარიელია.",
     "q.qty":"რაოდენობა","q.unit":"ერთეული","q.line":"ჯამი","q.total":"სულ","q.vat":"დღგ ჩათვლით",
-    "u.mm":"მმ","u.pcs":"ც","u.m2":"მ²","u.per":"/ც",
+    "u.mm":"მმ","u.pcs":"ც","u.m2":"მ²","u.per":"/ც","u.total":"სულ",
     "t.copied":"დაკოპირდა ✓","t.nothing":"ჯერ არაფერია გამოსათვლელი","t.saved":"ჩაიტვირთა ✓","t.bad":"არასწორი მონაცემი",
     "c.clear":"წავშალო ყველა განზომილება?","c.reset":"დავაბრუნო ყველა პარამეტრი საწყის მნიშვნელობაზე?",
     "x2.now":"ახლა:","x2.warn":"⚠ ფაქტორი უნდა იყოს 1-ზე ნაკლები."
@@ -548,7 +584,6 @@ const I18N = {
     "bd.products":"Products","bd.summary":"Summary",
     "bd.area":"Combined area","bd.x2":"Factor x2","bd.markup":"Markup",
     "bd.qty":"Total quantity","bd.usd":"Total (USD)","bd.empty":"Enter dimensions",
-    "hint.tip":"Tip: type 500x300x200 into the length field — it splits automatically.",
     "hint.x2":"The discount factor is derived from the combined area of every product, so adding a product also changes the price of the others.",
     "v.rate":"Exchange rate","v.rate.f":"Rate (USD → GEL)",
     "v.prices":"Base prices","v.prices.note":"USD per m², VAT included.",
@@ -557,13 +592,17 @@ const I18N = {
     "v.a3":"Width · 3-layer (+mm)","v.a5":"Width · 5-layer (+mm)",
     "v.x2":"Discount factor (x2)","v.x2base":"Base","v.x2decay":"Decay",
     "v.x2thr":"Threshold (m²)","v.x2above":"Above threshold",
+    "v.limits":"Machine limits","v.maxLW":"L+W max (mm)",
+    "v.maxHW2":"H+W/2 max (mm)","v.minBlankW":"Slotter min format (mm)",
+    "v.limits.note":"Boxes only. The warning never changes the price.",
+    "w.lw":"L+W","w.hw2":"H+W/2","w.blank":"Blank width","w.max":"max","w.min":"min",
     "v.defaults":"Defaults for new products","v.defaults.note":"New product cards open with these settings.",
     "v.display":"Display","v.lang":"Language","v.dec":"Decimals (₾)",
     "v.backup":"Backup","v.export":"Export","v.import":"Import",
     "v.reset":"Reset everything to defaults",
     "v.note":"Settings are stored on this device. Dimensions start empty every time.",
     "q.qty":"Quantity","q.unit":"Unit","q.line":"Line total","q.total":"TOTAL","q.vat":"VAT incl.",
-    "u.mm":"mm","u.pcs":"pcs","u.m2":"m²","u.per":"/pc",
+    "u.mm":"mm","u.pcs":"pcs","u.m2":"m²","u.per":"/pc","u.total":"total",
     "t.copied":"Copied ✓","t.nothing":"Nothing to calculate yet","t.saved":"Loaded ✓","t.bad":"Invalid data",
     "c.clear":"Clear all dimensions?","c.reset":"Reset every setting to its default value?",
     "x2.now":"Now:","x2.warn":"⚠ The factor must be below 1."
@@ -663,8 +702,30 @@ function computeQuote(rows, s){
   return { rows: out, areaTotal, x2, markup, totalUSD, totalGEL, totalQty, count };
 }
 
+/* Machine limits. Purely advisory: this function is never consulted by
+   computeQuote, so a warning can never move a price. Boxes only. */
+function checkLimits(row, s){
+  if (row.type !== "box") return [];
+  const lim = s.limits || {};
+  const maxLW = parseNum(lim.maxLW), maxHW2 = parseNum(lim.maxHW2), minBW = parseNum(lim.minBlankW);
+  const has = v => Number.isFinite(v) && v > 0;
+  const out = [];
+  if (has(row.L) && has(row.W) && Number.isFinite(maxLW) && row.L + row.W > maxLW)
+    out.push({ key:"w.lw", kind:"max", actual:row.L + row.W, limit:maxLW, fields:["L","W"] });
+  if (has(row.H) && has(row.W)){
+    const hw2 = row.H + row.W / 2;
+    if (Number.isFinite(maxHW2) && hw2 > maxHW2)
+      out.push({ key:"w.hw2", kind:"max", actual:hw2, limit:maxHW2, fields:["H","W"] });
+    const allow = parseNum((s.allow || {})[row.layers]);
+    const blankW = row.H + row.W + (Number.isFinite(allow) ? allow : 0);
+    if (Number.isFinite(minBW) && blankW < minBW)
+      out.push({ key:"w.blank", kind:"min", actual:blankW, limit:minBW, fields:["H","W"] });
+  }
+  return out;
+}
+
 /* Exposed for the automated parity test against the original file. */
-window.GBOX = { DEFAULTS, parseNum, computeQuote, factorFor, blankSize };
+window.GBOX = { DEFAULTS, parseNum, computeQuote, factorFor, blankSize, checkLimits };
 
 /* ============================================================
    STORAGE — every access guarded: localStorage throws outright
@@ -689,6 +750,7 @@ function sanitize(raw){
     if (raw.allow) s.allow[L] = num(raw.allow[L], s.allow[L]);
   });
   if (raw.x2) ["base","decay","threshold","above"].forEach(k => { s.x2[k] = num(raw.x2[k], s.x2[k]); });
+  if (raw.limits) ["maxLW","maxHW2","minBlankW"].forEach(k => { s.limits[k] = num(raw.limits[k], s.limits[k]); });
   if (raw.def){
     if (raw.def.type === "box" || raw.def.type === "sheet") s.def.type = raw.def.type;
     if (String(raw.def.layers) === "3" || String(raw.def.layers) === "5") s.def.layers = String(raw.def.layers);
@@ -784,6 +846,7 @@ function mountCard(row){
       segHTML("color",  [{v:"grey",k:"color.grey"},{v:"white",k:"color.white"}]) +
     '</div>' +
     '<div class="grid">' + fieldHTML("L") + fieldHTML("W") + fieldHTML("H") + fieldHTML("qty") + '</div>' +
+    '<div class="warn" hidden></div>' +
     '<div class="card-out">' +
       '<span class="out-meta"></span>' +
       '<span class="out-total is-empty">—</span>' +
@@ -852,6 +915,7 @@ function paint(){
   const q = computeQuote(nrows, s);
   lastQuote = q;
   const single = state.rows.length === 1 ? "1" : "0";
+  let flagged = 0;
 
   state.rows.forEach((row, i) => {
     const node = cardEls.get(row.id);
@@ -861,9 +925,28 @@ function paint(){
     const o = q.rows[i];
     const meta  = node.querySelector(".out-meta");
     const total = node.querySelector(".out-total");
+
+    /* Advisory machine-limit check — never feeds into the price. */
+    const issues = checkLimits(nrows[i], s);
+    const warnEl = node.querySelector(".warn");
+    if (issues.length){
+      warnEl.innerHTML = issues.map(w =>
+        "<span>⚠ " + t(w.key) + " = " + fmtNum(w.actual, 0) + " " + t("u.mm") + " · " +
+        t(w.kind === "max" ? "w.max" : "w.min") + " " + fmtNum(w.limit, 0) + "</span>").join("");
+      warnEl.hidden = false;
+    } else {
+      warnEl.hidden = true;
+      warnEl.innerHTML = "";
+    }
+    const badFields = new Set();
+    issues.forEach(w => w.fields.forEach(f => badFields.add(f)));
+    node.querySelectorAll(".fld").forEach(f => f.classList.toggle("over", badFields.has(f.dataset.name)));
+    if (issues.length) flagged++;
+
     if (o && o.ok){
       meta.textContent = fmtNum(o.Ltot, 0) + " × " + fmtNum(o.Wtot, 0) + " " + t("u.mm") +
-                         " · " + fmtNum(o.m2, 4) + " " + t("u.m2") +
+                         " · " + fmtNum(o.m2, 4) + " " + t("u.m2") + t("u.per") +
+                         " · " + fmtNum(o.area, 2) + " " + t("u.m2") + " " + t("u.total") +
                          " · " + fmtGEL(o.unitGEL) + t("u.per");
       total.textContent = fmtGEL(o.lineGEL);
       total.classList.remove("is-empty");
@@ -873,6 +956,10 @@ function paint(){
       total.classList.add("is-empty");
     }
   });
+
+  const lblWarn = document.getElementById("lblWarn");
+  lblWarn.textContent = flagged ? "⚠ " + flagged : "";
+  lblWarn.hidden = !flagged;
 
   setHero(q.totalGEL, q.count > 0);
   el.totalUsd.textContent = fmtUSD(q.totalUSD);
