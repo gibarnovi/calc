@@ -410,9 +410,7 @@ textarea.io{
             <input type="text" inputmode="decimal" data-set="x2.base" autocomplete="off" spellcheck="false"></label>
           <label class="fld"><span data-i18n="v.x2decay">კლების კოეფ.</span>
             <input type="text" inputmode="decimal" data-set="x2.decay" autocomplete="off" spellcheck="false"></label>
-          <label class="fld"><span data-i18n="v.x2thr">ზღვარი (მ²)</span>
-            <input type="text" inputmode="decimal" data-set="x2.threshold" autocomplete="off" spellcheck="false"></label>
-          <label class="fld"><span data-i18n="v.x2above">ზღვარს ზემოთ</span>
+          <label class="fld"><span data-i18n="v.x2above">მინიმალური x2</span>
             <input type="text" inputmode="decimal" data-set="x2.above" autocomplete="off" spellcheck="false"></label>
         </div>
         <div class="readout" id="x2Out"></div>
@@ -529,7 +527,11 @@ const DEFAULTS = {
            "5": { grey: 0.63, white: 0.65 } },
   flap:  40,                                    // mm added to box blank length
   allow: { "3": 2, "5": 4 },                    // mm added to box blank width
-  x2:    { base: 0.57, decay: 0.00008, threshold: 10000, above: 0.15 },
+  /* x2 is the gross margin taken on the selling price: price = base/(1-x2).
+     It decays with the combined area of the quote and never falls below
+     `above`, the floor. The curve meets that floor on its own, so there is
+     no threshold constant to set. */
+  x2:    { base: 0.57, decay: 0.00008, above: 0.15 },
   /* Machine limits, mm. Advisory only — they warn, they never touch the
      price. Boxes only: a slotter does not run plain sheets. */
   limits:{ maxLW: 1150, maxHW2: 800, minBlankW: 300 },
@@ -569,7 +571,7 @@ const I18N = {
     "v.constr":"ყუთის კონსტრუქცია","v.flap":"დანამატი სიგრძეზე (+მმ)",
     "v.a3":"სიგანეზე · 3 ფენა (+მმ)","v.a5":"სიგანეზე · 5 ფენა (+მმ)",
     "v.x2":"ფასდაკლების ფაქტორი (x2)","v.x2base":"საბაზისო","v.x2decay":"კლების კოეფ.",
-    "v.x2thr":"ზღვარი (მ²)","v.x2above":"ზღვარს ზემოთ",
+    "v.x2above":"მინიმალური x2",
     "v.order":"მინიმალური შეკვეთა","v.target":"სამიზნე ფართობი (მ²)","v.step":"დამრგვალება (ც)",
     "v.order.note":"რაოდენობის ველში ნაცრისფრად ჩანს შემოთავაზებული რაოდენობა. ის გამოთვლაში არ მონაწილეობს — რიცხვი თავად უნდა აკრიფო.",
     "v.limits":"დანადგარის შეზღუდვები","v.maxLW":"L+W არაუმეტეს (მმ)",
@@ -585,7 +587,8 @@ const I18N = {
     "u.mm":"მმ","u.pcs":"ც","u.m2":"მ²","u.per":"/ც","u.total":"სულ",
     "t.copied":"დაკოპირდა ✓","t.nothing":"ჯერ არაფერია გამოსათვლელი","t.saved":"ჩაიტვირთა ✓","t.bad":"არასწორი მონაცემი",
     "c.clear":"წავშალო ყველა განზომილება?","c.reset":"დავაბრუნო ყველა პარამეტრი საწყის მნიშვნელობაზე?",
-    "x2.now":"ახლა:","x2.warn":"⚠ ფაქტორი უნდა იყოს 1-ზე ნაკლები."
+    "x2.now":"ახლა:","x2.warn":"⚠ ფაქტორი უნდა იყოს 1-ზე ნაკლები.",
+    "x2.floor":"მინიმუმს {f} აღწევს {a} მ²-ზე."
   },
   en: {
     "app.sub":"Price calculator",
@@ -609,7 +612,7 @@ const I18N = {
     "v.constr":"Box construction","v.flap":"Length allowance (+mm)",
     "v.a3":"Width · 3-layer (+mm)","v.a5":"Width · 5-layer (+mm)",
     "v.x2":"Discount factor (x2)","v.x2base":"Base","v.x2decay":"Decay",
-    "v.x2thr":"Threshold (m²)","v.x2above":"Above threshold",
+    "v.x2above":"Minimum x2",
     "v.order":"Minimum order","v.target":"Target area (m²)","v.step":"Rounding step (pcs)",
     "v.order.note":"The quantity field shows a greyed suggestion. It is not used in the calculation — you type the number yourself.",
     "v.limits":"Machine limits","v.maxLW":"L+W max (mm)",
@@ -625,7 +628,8 @@ const I18N = {
     "u.mm":"mm","u.pcs":"pcs","u.m2":"m²","u.per":"/pc","u.total":"total",
     "t.copied":"Copied ✓","t.nothing":"Nothing to calculate yet","t.saved":"Loaded ✓","t.bad":"Invalid data",
     "c.clear":"Clear all dimensions?","c.reset":"Reset every setting to its default value?",
-    "x2.now":"Now:","x2.warn":"⚠ The factor must be below 1."
+    "x2.now":"Now:","x2.warn":"⚠ The factor must be below 1.",
+    "x2.floor":"The minimum {f} is reached at {a} m²."
   }
 };
 let LANG = "ka";
@@ -676,14 +680,25 @@ function rowComplete(row){
 
 function factorFor(area, s){
   const c = s.x2;
-  const thr = parseNum(c.threshold), above = parseNum(c.above);
+  const floor = parseNum(c.above);
   const base = parseNum(c.base), decay = parseNum(c.decay);
-  let v = (Number.isFinite(thr) && area > thr)
-    ? above
-    : base * Math.exp(-decay * area);
+  let v = base * Math.exp(-decay * area);
   if (!Number.isFinite(v)) v = 0;
+  /* A floor, not a branch. The curve reaches the floor by itself at
+     ln(base/floor)/decay, so the price stays continuous — without this,
+     one extra m2 past a hard threshold cut the bill by 12.5% and a
+     bigger order could cost less in total than a smaller one. */
+  if (Number.isFinite(floor)) v = Math.max(v, floor);
   /* Guard the original lacks: x2 >= 1 divides by zero or flips the sign. */
   return Math.min(v, 0.999999);
+}
+
+/* Area at which the decaying curve meets the floor, or null when the two
+   never cross. Display only — no price depends on it. */
+function floorAt(s){
+  const base = parseNum(s.x2.base), decay = parseNum(s.x2.decay), floor = parseNum(s.x2.above);
+  if (!(base > 0) || !(decay > 0) || !(floor > 0) || floor >= base) return null;
+  return Math.log(base / floor) / decay;
 }
 
 function computeQuote(rows, s){
@@ -765,7 +780,7 @@ function suggestQty(row, s){
 }
 
 /* Exposed for the automated parity test against the original file. */
-window.GBOX = { DEFAULTS, parseNum, computeQuote, factorFor, blankSize, checkLimits, suggestQty };
+window.GBOX = { DEFAULTS, parseNum, computeQuote, factorFor, floorAt, blankSize, checkLimits, suggestQty };
 
 /* ============================================================
    STORAGE — every access guarded: localStorage throws outright
@@ -789,7 +804,7 @@ function sanitize(raw){
     }
     if (raw.allow) s.allow[L] = num(raw.allow[L], s.allow[L]);
   });
-  if (raw.x2) ["base","decay","threshold","above"].forEach(k => { s.x2[k] = num(raw.x2[k], s.x2[k]); });
+  if (raw.x2) ["base","decay","above"].forEach(k => { s.x2[k] = num(raw.x2[k], s.x2[k]); });
   if (raw.limits) ["maxLW","maxHW2","minBlankW"].forEach(k => { s.limits[k] = num(raw.limits[k], s.limits[k]); });
   if (raw.order) ["targetM2","step"].forEach(k => { s.order[k] = num(raw.order[k], s.order[k]); });
   if (raw.def){
@@ -1082,8 +1097,12 @@ function renderReadouts(q){
   const area = q ? q.areaTotal : 0;
   const x2 = factorFor(area, s);
   const warn = x2 >= 0.999999 ? ' <b>' + t("x2.warn") + '</b>' : "";
+  const fa = floorAt(s);
+  const floorLine = fa === null ? "" :
+    "<br>" + t("x2.floor").replace("{f}", fmtNum(parseNum(s.x2.above), 4))
+                          .replace("{a}", fmtNum(fa, 0));
   el.x2Out.innerHTML = t("x2.now") + " <b>" + fmtNum(area, 2) + " " + t("u.m2") + "</b> → x2 = <b>" +
-                       fmtNum(x2, 4) + "</b> → <b>×" + fmtNum(1 / (1 - x2), 3) + "</b>" + warn;
+                       fmtNum(x2, 4) + "</b> → <b>×" + fmtNum(1 / (1 - x2), 3) + "</b>" + warn + floorLine;
   const f = fmtNum(parseNum(s.flap), 0);
   const a3 = fmtNum(parseNum(s.allow["3"]), 0), a5 = fmtNum(parseNum(s.allow["5"]), 0);
   const boxL = "((L + W) × 2 + " + f + ")";
