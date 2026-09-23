@@ -22,6 +22,11 @@
    coloured object on screen (Von Restorff / isolation effect).
    ============================================================ */
 :root{
+  /* Safe areas read once, used everywhere through these names. */
+  --sat:env(safe-area-inset-top,0px);
+  --sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px);
+  --sar:env(safe-area-inset-right,0px);
   --bg:#f2f2f7;
   --surface:#ffffff;
   --surface-2:#e9e9ef;
@@ -29,8 +34,10 @@
   --seg-track:#e9e9ef;
   --seg-thumb:#ffffff;
   --ink:#11131a;
-  --ink-2:#565b6b;
-  --ink-3:#8b90a1;
+  /* ink-2/ink-3 carry every label, hint and tab name. ink-3 used to measure
+     2.6-3.2:1; both now clear WCAG AA 4.5:1 on every surface they sit on. */
+  --ink-2:#4a4f5e;
+  --ink-3:#646979;
   --line:#e0e1e8;
   --accent:#0a7d32;
   --danger:#c62828;
@@ -48,8 +55,8 @@
     --seg-track:#2c2c2e;
     --seg-thumb:#4a4a4e;
     --ink:#ffffff;
-    --ink-2:#a8a8ae;
-    --ink-3:#76767c;
+    --ink-2:#b8b8be;
+    --ink-3:#98989f;
     --line:#2c2c2e;
     --accent:#32d74b;
     --danger:#ff6b6b;
@@ -62,13 +69,19 @@
    2. BASE
    ============================================================ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-text-size-adjust:100%}
+/* manipulation removes double-tap zoom (an accidental double tap zoomed the
+   whole app) while keeping pinch zoom for accessibility. */
+html{-webkit-text-size-adjust:100%;height:100%;overflow:hidden;background:var(--bg);touch-action:manipulation}
 body{
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Noto Sans Georgian","BPG Nino Mtavruli",Sylfaen,"Segoe UI",system-ui,Roboto,sans-serif;
   background:var(--bg);
   color:var(--ink);
   line-height:1.35;
-  height:var(--app-h,100dvh);
+  /* The body is the app shell, pinned to the visual viewport's height AND
+     offset: when iOS shrinks or pans the view for the keyboard, the whole
+     app moves with it instead of sliding under the keys. */
+  position:fixed;left:0;right:0;top:var(--vvtop,0px);
+  height:var(--vvh,100dvh);
   display:flex;
   flex-direction:column;
   overflow:hidden;
@@ -89,13 +102,13 @@ input,textarea{touch-action:manipulation}
 .appbar{
   flex:0 0 auto;
   display:flex;align-items:center;justify-content:space-between;gap:10px;
-  padding:calc(env(safe-area-inset-top) + 9px) max(14px,env(safe-area-inset-right)) 9px max(14px,env(safe-area-inset-left));
+  padding:calc(var(--sat) + 9px) max(14px,var(--sar)) 9px max(14px,var(--sal));
   background:var(--bg);
   border-bottom:1px solid var(--line);
 }
 .brand{display:flex;align-items:baseline;gap:7px;min-width:0}
 .brand b{font-size:16px;font-weight:800;letter-spacing:.4px}
-.brand span{font-size:12px;font-weight:500;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand span{font-size:13px;font-weight:500;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ratepill{
   position:relative;flex:0 0 auto;
   display:inline-flex;align-items:center;gap:5px;
@@ -113,7 +126,8 @@ input,textarea{touch-action:manipulation}
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   overscroll-behavior:contain;
-  padding:12px max(14px,env(safe-area-inset-right)) 22px max(14px,env(safe-area-inset-left));
+  scroll-padding:12px 0;
+  padding:12px max(14px,var(--sar)) 22px max(14px,var(--sal));
 }
 .view{display:flex;flex-direction:column;gap:11px}
 .view[hidden]{display:none}
@@ -128,12 +142,13 @@ input,textarea{touch-action:manipulation}
   display:flex;flex-direction:column;gap:8px;
 }
 .card-head{display:flex;align-items:center;justify-content:space-between;min-height:22px}
-.card-title{font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--ink-3)}
+.card-title{font-size:12px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--ink-3)}
 .icon-btn{
   width:44px;height:44px;margin:-11px -11px -11px 0;
   display:grid;place-items:center;border-radius:50%;
-  font-size:23px;line-height:1;color:var(--ink-3);
+  color:var(--ink-3);
 }
+.icon-btn svg{width:18px;height:18px;display:block}
 .icon-btn:active{background:var(--surface-2)}
 .card[data-single="1"] .icon-btn{display:none}
 
@@ -155,7 +170,7 @@ input,textarea{touch-action:manipulation}
 /* ---- dimension fields ---- */
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .fld{display:flex;flex-direction:column;gap:4px;min-width:0}
-.fld > span{font-size:11px;font-weight:700;letter-spacing:.3px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fld > span{font-size:12.5px;font-weight:700;letter-spacing:.3px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fld input{
   width:100%;min-height:46px;padding:10px 12px;
   /* 17px is deliberate: anything under 16px makes iOS Safari zoom
@@ -181,9 +196,14 @@ input,textarea{touch-action:manipulation}
   padding:8px 10px;border-radius:var(--r-sm);
   background:color-mix(in srgb, var(--danger) 9%, transparent);
   border:1px solid color-mix(in srgb, var(--danger) 34%, transparent);
-  font-size:12px;font-weight:650;line-height:1.45;color:var(--danger);
+  font-size:12.5px;font-weight:650;line-height:1.45;color:var(--danger);
   font-variant-numeric:tabular-nums lining-nums;
 }
+.warn > span{display:flex;align-items:flex-start;gap:6px}
+/* One stroke icon, drawn in the text colour. Replaces the ⚠ glyph, which
+   iOS may render as a colour emoji that ignores the red. */
+.ico{width:1.1em;height:1.1em;flex:0 0 auto;margin-top:.12em;fill:none;stroke:currentColor;
+     stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .warn[hidden]{display:none}
 .fld.over input{border-color:var(--danger)}
 .fld.over > span{color:var(--danger)}
@@ -191,7 +211,7 @@ input,textarea{touch-action:manipulation}
   display:flex;align-items:flex-end;justify-content:space-between;gap:10px;
   min-height:32px;padding-top:9px;border-top:1px solid var(--line);
 }
-.out-meta{font-size:12px;line-height:1.45;color:var(--ink-3);font-variant-numeric:tabular-nums lining-nums;min-width:0}
+.out-meta{font-size:12.5px;line-height:1.45;color:var(--ink-3);font-variant-numeric:tabular-nums lining-nums;min-width:0}
 .out-total{font-size:17px;font-weight:750;white-space:nowrap;font-variant-numeric:tabular-nums lining-nums}
 .out-total.is-empty{color:var(--ink-3);font-weight:500}
 
@@ -205,22 +225,23 @@ input,textarea{touch-action:manipulation}
 }
 .btn:active{background:var(--surface-2)}
 .btn.ghost{background:transparent;box-shadow:none;color:var(--ink-2)}
-.hint{font-size:12px;line-height:1.5;color:var(--ink-3);padding:0 2px}
+.hint{font-size:13px;line-height:1.5;color:var(--ink-3);padding:0 2px}
 
 /* ============================================================
    5. DOCK — result bar + tab bar (thumb zone)
    ============================================================ */
-.dock{flex:0 0 auto;background:var(--surface);border-top:1px solid var(--line)}
+.dock{position:relative;flex:0 0 auto;background:var(--surface);border-top:1px solid var(--line)}
 .result[hidden]{display:none}
-.result-row{display:flex;align-items:center;padding-right:max(8px,env(safe-area-inset-right))}
+.result-row{display:flex;align-items:center;padding-right:max(8px,var(--sar))}
 .result-main{
   flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;text-align:left;min-height:66px;
-  padding:9px 0 9px max(14px,env(safe-area-inset-left));
+  padding:9px 0 9px max(14px,var(--sal));
 }
+.result-main:active{background:var(--surface-3)}
 .result-left{flex:1 1 auto;min-width:0;display:block}
 .copy-btn{flex:0 0 auto}
 .result-label,.total-gel,.total-usd{display:block}
-.result-label{display:flex;align-items:baseline;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-3)}
+.result-label{display:flex;align-items:baseline;gap:6px;font-size:11.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-3)}
 .total-gel{
   font-size:clamp(26px,8.6vw,35px);font-weight:800;letter-spacing:-.9px;line-height:1.12;
   color:var(--accent);
@@ -228,11 +249,12 @@ input,textarea{touch-action:manipulation}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .total-gel.is-empty{color:var(--ink-3);font-weight:700}
-.total-usd{font-size:12.5px;font-weight:650;color:var(--ink-3);font-variant-numeric:tabular-nums lining-nums}
+.total-usd{font-size:13px;font-weight:650;color:var(--ink-3);font-variant-numeric:tabular-nums lining-nums}
 /* Reserve the row rather than removing it: the dock must not change
    height the moment the first price appears. */
 .total-usd.is-hidden{visibility:hidden}
-.lbl-warn{color:var(--danger);font-weight:800;flex:0 0 auto}
+.lbl-warn{color:var(--danger);font-weight:800;flex:0 0 auto;display:inline-flex;align-items:center;gap:3px;align-self:center}
+.lbl-warn .ico{margin-top:0}
 .lbl-warn[hidden]{display:none}
 .round-btn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--ink-2)}
 .round-btn:active{background:var(--surface-2)}
@@ -242,22 +264,23 @@ input,textarea{touch-action:manipulation}
 .breakdown{
   max-height:40dvh;overflow-y:auto;overscroll-behavior:contain;
   background:var(--surface-3);border-top:1px solid var(--line);
-  padding:4px max(14px,env(safe-area-inset-right)) 12px max(14px,env(safe-area-inset-left));
+  padding:4px max(14px,var(--sar)) 12px max(14px,var(--sal));
 }
 .breakdown[hidden]{display:none}
 .bd-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;font-size:13px;border-bottom:1px solid var(--line)}
 .bd-row:last-child{border-bottom:0}
-.bd-row.head{font-weight:750;color:var(--ink-3);font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;padding-top:11px;border-bottom:0}
+.bd-row.head{font-weight:750;color:var(--ink-3);font-size:11.5px;letter-spacing:.6px;text-transform:uppercase;padding-top:11px;border-bottom:0}
 .bd-k{color:var(--ink-2);min-width:0}
 .bd-v{font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums lining-nums}
 
-.tabbar{display:flex;background:var(--surface);padding-bottom:env(safe-area-inset-bottom);border-top:1px solid var(--line)}
+.tabbar{display:flex;background:var(--surface);padding-bottom:var(--sab);border-top:1px solid var(--line)}
 .tabbar button{
   flex:1 1 0;min-height:52px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   font-size:11px;font-weight:650;color:var(--ink-3);
 }
 .tabbar button[aria-selected="true"]{color:var(--ink)}
+.tabbar button:active{opacity:.55}
 .tabbar svg{width:23px;height:23px;display:block}
 
 /* ============================================================
@@ -270,6 +293,7 @@ input,textarea{touch-action:manipulation}
   font-size:15px;font-weight:700;cursor:pointer;
 }
 .sect > summary::-webkit-details-marker{display:none}
+.sect > summary:active{background:var(--surface-2)}
 .sect > summary::after{
   content:"";flex:0 0 auto;width:8px;height:8px;margin-right:3px;
   border-right:2px solid var(--ink-3);border-bottom:2px solid var(--ink-3);
@@ -284,6 +308,7 @@ input,textarea{touch-action:manipulation}
   font-variant-numeric:tabular-nums lining-nums;
 }
 .readout b{color:var(--ink);font-weight:750}
+.readout .lbl-warn{color:var(--danger)}
 textarea.io{
   width:100%;min-height:88px;padding:10px 12px;resize:vertical;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;
@@ -291,12 +316,14 @@ textarea.io{
   appearance:none;-webkit-appearance:none;
 }
 .btn.danger{color:var(--danger)}
+/* A rate of zero or less would price everything at 0 ₾. */
+.ratepill.bad{color:var(--danger);border-color:var(--danger)}
 
 /* ============================================================
    7. TOAST
    ============================================================ */
 .toast{
-  position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 132px);z-index:60;
+  position:absolute;left:50%;bottom:calc(100% + 12px);z-index:60;
   transform:translateX(-50%) translateY(10px);
   background:var(--ink);color:var(--bg);
   padding:11px 18px;border-radius:999px;
@@ -305,6 +332,16 @@ textarea.io{
   transition:opacity .18s ease,transform .18s ease;
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ============================================================
+   8. KEYBOARD MODE — set while the on-screen keyboard is up.
+   The keys cover the home indicator, so the tab bar and its safe-area
+   strip only waste the rows right above them: they go, and the price
+   sits directly on the keyboard. The breakdown needs more room than
+   typing leaves; it comes back when the keyboard closes.
+   ============================================================ */
+.kb .tabbar,.kb .breakdown{display:none}
+.kb[data-tab="vars"] .dock{border-top:0}
 
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{transition-duration:.001ms !important;animation-duration:.001ms !important}
@@ -475,6 +512,7 @@ textarea.io{
 </main>
 
 <footer class="dock">
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <div class="result" id="resultBar">
     <div class="result-row">
       <button type="button" class="result-main" id="resultMain" aria-expanded="false" aria-controls="breakdown">
@@ -509,7 +547,6 @@ textarea.io{
   </nav>
 </footer>
 
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <span class="sr-only" id="srTotal" aria-live="polite"></span>
 
 <script>
@@ -587,7 +624,7 @@ const I18N = {
     "u.mm":"მმ","u.pcs":"ც","u.m2":"მ²","u.per":"/ც","u.total":"სულ",
     "t.copied":"დაკოპირდა ✓","t.nothing":"ჯერ არაფერია გამოსათვლელი","t.saved":"ჩაიტვირთა ✓","t.bad":"არასწორი მონაცემი",
     "c.clear":"წავშალო ყველა განზომილება?","c.reset":"დავაბრუნო ყველა პარამეტრი საწყის მნიშვნელობაზე?",
-    "x2.now":"ახლა:","x2.warn":"⚠ ფაქტორი უნდა იყოს 1-ზე ნაკლები.",
+    "x2.now":"ახლა:","x2.warn":"ფაქტორი უნდა იყოს 1-ზე ნაკლები.",
     "x2.floor":"მინიმუმს {f} აღწევს {a} მ²-ზე."
   },
   en: {
@@ -628,7 +665,7 @@ const I18N = {
     "u.mm":"mm","u.pcs":"pcs","u.m2":"m²","u.per":"/pc","u.total":"total",
     "t.copied":"Copied ✓","t.nothing":"Nothing to calculate yet","t.saved":"Loaded ✓","t.bad":"Invalid data",
     "c.clear":"Clear all dimensions?","c.reset":"Reset every setting to its default value?",
-    "x2.now":"Now:","x2.warn":"⚠ The factor must be below 1.",
+    "x2.now":"Now:","x2.warn":"The factor must be below 1.",
     "x2.floor":"The minimum {f} is reached at {a} m²."
   }
 };
@@ -834,6 +871,7 @@ const cardEls = new Map();
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const $  = sel => document.querySelector(sel);
+const docEl = document.documentElement;
 const el = {
   cards: $("#cards"), scroll: $("#scroll"),
   viewCalc: $("#view-calc"), viewVars: $("#view-vars"),
@@ -846,6 +884,8 @@ const el = {
 };
 
 const GEL = "₾";
+const ICON_WARN = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 4.3 2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4.5"/><path d="M12 17.4h.01"/></svg>';
+const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
 const fmtGEL = v => fmtNum(v, state.settings.dec) + " " + GEL;
 const fmtUSD = v => "$" + fmtNum(v, 2);
 
@@ -894,7 +934,7 @@ function mountCard(row){
   node.innerHTML =
     '<div class="card-head">' +
       '<span class="card-title"></span>' +
-      '<button type="button" class="icon-btn" data-act="remove" aria-label="' + t("a.remove") + '">&times;</button>' +
+      '<button type="button" class="icon-btn" data-act="remove" aria-label="' + t("a.remove") + '">' + ICON_X + '</button>' +
     '</div>' +
     segHTML("type", [{v:"box",k:"type.box"},{v:"sheet",k:"type.sheet"}]) +
     '<div class="segrow">' +
@@ -902,7 +942,7 @@ function mountCard(row){
       segHTML("color",  [{v:"grey",k:"color.grey"},{v:"white",k:"color.white"}]) +
     '</div>' +
     '<div class="grid">' + fieldHTML("L") + fieldHTML("W") + fieldHTML("H") + fieldHTML("qty") + '</div>' +
-    '<div class="warn" hidden></div>' +
+    '<div class="warn" id="warn-' + row.id + '" hidden></div>' +
     '<div class="card-out">' +
       '<span class="out-meta"></span>' +
       '<span class="out-total is-empty">—</span>' +
@@ -944,9 +984,11 @@ function addRow(focus){
   paint();
   if (focus !== false){
     const node = cardEls.get(row.id);
-    node.scrollIntoView({ block: "nearest" });
+    /* Scroll the list, never the page — a page scroll is what iOS then
+       fights with when the keyboard opens. */
+    revealIn(node, node);
     const first = node.querySelector('input[name="L"]');
-    if (first) first.focus();
+    if (first) first.focus({ preventScroll: true });
   }
 }
 
@@ -977,7 +1019,9 @@ function paint(){
     const node = cardEls.get(row.id);
     if (!node) return;
     node.dataset.single = single;
-    node.querySelector(".card-title").textContent = t("card.product") + " " + (i + 1);
+    const title = t("card.product") + " " + (i + 1);
+    node.querySelector(".card-title").textContent = title;
+    node.setAttribute("aria-label", title);
     const o = q.rows[i];
     const meta  = node.querySelector(".out-meta");
     const total = node.querySelector(".out-total");
@@ -993,8 +1037,8 @@ function paint(){
     const warnEl = node.querySelector(".warn");
     if (issues.length){
       warnEl.innerHTML = issues.map(w =>
-        "<span>⚠ " + t(w.key) + " = " + fmtNum(w.actual, 0) + " " + t("u.mm") + " · " +
-        t(w.kind === "max" ? "w.max" : "w.min") + " " + fmtNum(w.limit, 0) + "</span>").join("");
+        "<span>" + ICON_WARN + "<span>" + t(w.key) + " = " + fmtNum(w.actual, 0) + " " + t("u.mm") + " · " +
+        t(w.kind === "max" ? "w.max" : "w.min") + " " + fmtNum(w.limit, 0) + "</span></span>").join("");
       warnEl.hidden = false;
     } else {
       warnEl.hidden = true;
@@ -1002,10 +1046,15 @@ function paint(){
     }
     const badFields = new Set();
     issues.forEach(w => w.fields.forEach(f => badFields.add(f)));
-    node.querySelectorAll(".fld").forEach(f => f.classList.toggle("over", badFields.has(f.dataset.name)));
+    node.querySelectorAll(".fld").forEach(f => {
+      const bad = badFields.has(f.dataset.name);
+      f.classList.toggle("over", bad);
+      const inp = f.querySelector("input");
+      if (bad) inp.setAttribute("aria-describedby", warnEl.id); else inp.removeAttribute("aria-describedby");
+    });
     if (issues.length) flagged++;
 
-    if (o && o.ok){
+    if (o && o.ok && o.lineGEL > 0){
       meta.textContent = fmtNum(o.Ltot, 0) + " × " + fmtNum(o.Wtot, 0) + " " + t("u.mm") +
                          " · " + fmtNum(o.m2, 4) + " " + t("u.m2") + t("u.per") +
                          " · " + fmtNum(o.area, 2) + " " + t("u.m2") + " " + t("u.total") +
@@ -1020,12 +1069,13 @@ function paint(){
   });
 
   const lblWarn = document.getElementById("lblWarn");
-  lblWarn.textContent = flagged ? "⚠ " + flagged : "";
+  lblWarn.innerHTML = flagged ? ICON_WARN + flagged : "";
   lblWarn.hidden = !flagged;
 
-  setHero(q.totalGEL, q.count > 0);
+  setHero(q.totalGEL, q.count > 0 && q.totalGEL > 0);
   el.totalUsd.textContent = fmtUSD(q.totalUSD);
   el.ratePillVal.textContent = fmtNum(parseNum(s.rate), 2) + " " + GEL;
+  el.ratePill.classList.toggle("bad", !(parseNum(s.rate) > 0));
   renderBreakdown(q);
   renderReadouts(q);
   announce(q);
@@ -1037,11 +1087,13 @@ function setHero(target, has){
   if (heroRAF) cancelAnimationFrame(heroRAF);
   el.totalGel.classList.toggle("is-empty", !has);
   el.totalUsd.classList.toggle("is-hidden", !has);
-  if (!has){ heroShown = 0; el.totalGel.textContent = "—"; heroRAF = 0; return; }
+  if (!has){ heroShown = 0; el.totalGel.textContent = "—"; fitHero(); heroRAF = 0; return; }
   const to = target;
-  if (reduceMotion || Math.abs(to - heroShown) < 0.005){
+  /* A non-finite start (after a decimals change) would tween through "—". */
+  if (reduceMotion || !Number.isFinite(heroShown) || Math.abs(to - heroShown) < 0.005){
     heroShown = to;
     el.totalGel.textContent = fmtGEL(to);
+    fitHero();
     return;
   }
   const from = heroShown, t0 = performance.now(), dur = 200;
@@ -1052,8 +1104,25 @@ function setHero(target, has){
     el.totalGel.textContent = fmtGEL(heroShown);
     if (p < 1) heroRAF = requestAnimationFrame(step);
     else { heroShown = to; el.totalGel.textContent = fmtGEL(to); heroRAF = 0; }
+    fitHero();
   };
   heroRAF = requestAnimationFrame(step);
+}
+
+/* The price is never truncated: a clipped "1 234 5…" is worse than a
+   smaller font. Shrink to fit, from the CSS size down to a floor. */
+const HERO_MIN_PX = 18;
+function fitHero(){
+  const e = el.totalGel;
+  e.style.fontSize = "";
+  /* Measure and retry: glyph widths and the fixed negative tracking do not
+     scale exactly with the font size, so one proportional step can land a
+     pixel or two short — and a price clipped by 2px loses its ₾ sign. */
+  let size = parseFloat(getComputedStyle(e).fontSize);
+  for (let i = 0; i < 8 && e.scrollWidth > e.clientWidth && size > HERO_MIN_PX; i++){
+    size = Math.max(HERO_MIN_PX, Math.floor(size * e.clientWidth / e.scrollWidth * 10) / 10 - (i ? 0.5 : 0));
+    e.style.fontSize = size + "px";
+  }
 }
 
 /* Screen readers get the settled value only, not every tween frame. */
@@ -1096,7 +1165,7 @@ function renderReadouts(q){
   const s = state.settings;
   const area = q ? q.areaTotal : 0;
   const x2 = factorFor(area, s);
-  const warn = x2 >= 0.999999 ? ' <b>' + t("x2.warn") + '</b>' : "";
+  const warn = x2 >= 0.999999 ? ' <b class="lbl-warn">' + ICON_WARN + t("x2.warn") + '</b>' : "";
   const fa = floorAt(s);
   const floorLine = fa === null ? "" :
     "<br>" + t("x2.floor").replace("{f}", fmtNum(parseNum(s.x2.above), 4))
@@ -1224,6 +1293,8 @@ document.addEventListener("click", e => {
 });
 
 el.resultMain.addEventListener("click", () => {
+  /* The breakdown needs the room the keyboard is using. */
+  if (kbOpen && isTextField(document.activeElement)) document.activeElement.blur();
   state.breakdown = !state.breakdown;
   el.breakdown.hidden = !state.breakdown;
   el.resultBar.classList.toggle("open", state.breakdown);
@@ -1237,6 +1308,7 @@ document.querySelectorAll(".tabbar [data-tab]").forEach(b => {
 
 function showTab(name){
   state.tab = name;
+  docEl.dataset.tab = name;
   el.viewCalc.hidden = name !== "calc";
   el.viewVars.hidden = name !== "vars";
   el.resultBar.hidden = name !== "calc";
@@ -1244,6 +1316,8 @@ function showTab(name){
     b.setAttribute("aria-selected", String(b.dataset.tab === name));
   });
   el.scroll.scrollTop = 0;
+  /* A repaint while the price bar was hidden measured it at width 0. */
+  if (name === "calc") fitHero();
 }
 
 function doClear(){
@@ -1263,7 +1337,7 @@ function quoteText(){
   const s = state.settings;
   const nrows = state.rows.map(toNumeric);
   const q = computeQuote(nrows, s);
-  if (!q.count) return "";
+  if (!q.count || !(q.totalGEL > 0)) return "";
   const lines = [];
   let n = 0;
   state.rows.forEach((row, i) => {
@@ -1315,7 +1389,7 @@ function toast(msg){
   el.toast.textContent = msg;
   el.toast.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.toast.classList.remove("show"), 1700);
+  toastTimer = setTimeout(() => el.toast.classList.remove("show"), 3000);
 }
 
 /* ============================================================
@@ -1408,31 +1482,94 @@ function doReset(){
 }
 
 /* ============================================================
-   VIEWPORT — keep the layout (and the price) above the iOS
-   keyboard instead of letting it slide underneath.
+   VIEWPORT & KEYBOARD
+   iOS never resizes the layout when the keyboard opens: it shrinks
+   the *visual* viewport and may pan it down to reveal the field. The
+   body is a fixed shell tracking that visual viewport exactly —
+   height and offset — so the header, the card being typed into and
+   the price stay on screen and nothing slides under the keys.
    ============================================================ */
-function syncHeight(){
+const KB_MIN_PX = 120;          /* shrink that means "keyboard", not browser chrome */
+let vvFrame = 0, kbOpen = false, lastW = 0;
+
+function isTextField(n){
+  return !!n && ((n.tagName === "INPUT" && n.type !== "button") || n.tagName === "TEXTAREA");
+}
+
+function syncViewport(){
+  vvFrame = 0;
   const vv = window.visualViewport;
-  const h = vv ? vv.height : window.innerHeight;
-  document.documentElement.style.setProperty("--app-h", h + "px");
+  const full = docEl.clientHeight || window.innerHeight;
+  /* Pinch-zoomed: the view is small because the user zoomed, not because
+     a keyboard opened. Leave the layout alone rather than shrink it. */
+  const zoomed = !vv || Math.abs(vv.scale - 1) > 0.01;
+  /* At scale 1 the visual viewport can never be taller than the layout:
+     a larger reading is stale, and trusting it pushes the dock off-screen. */
+  const h = zoomed ? full : Math.min(vv.height, full);
+  const top = zoomed ? 0 : Math.max(0, vv.offsetTop);
+  docEl.style.setProperty("--vvh", h + "px");
+  docEl.style.setProperty("--vvtop", top + "px");
+  setKeyboard(!zoomed && full - h > KB_MIN_PX && isTextField(document.activeElement));
+  if (docEl.clientWidth !== lastW){ lastW = docEl.clientWidth; fitHero(); }   /* rotation */
 }
+function queueViewport(){ if (!vvFrame) vvFrame = requestAnimationFrame(syncViewport); }
+
+function setKeyboard(open){
+  if (open === kbOpen) return;
+  kbOpen = open;
+  docEl.classList.toggle("kb", open);
+  if (open) requestAnimationFrame(revealFocused);
+  else window.scrollTo(0, 0);   /* iOS can leave the page panned after the keys close */
+}
+
+/* Bring the field being typed into — and, when it fits, its whole card,
+   line total included — into the visible part of the list. Scrolls the
+   list itself, never the page, so iOS has nothing left to pan. */
+function revealFocused(){
+  const a = document.activeElement;
+  if (!isTextField(a) || !el.scroll.contains(a)) return;
+  revealIn(a.closest(".card") || a.closest(".sect") || a, a);
+}
+function revealIn(block, field){
+  const box = el.scroll.getBoundingClientRect();
+  const pad = 10, top = box.top + pad, bottom = box.bottom - pad;
+  let r = block.getBoundingClientRect();
+  if (r.height > bottom - top) r = ((field.closest && field.closest(".fld")) || field).getBoundingClientRect();
+  let d = 0;
+  if (r.bottom > bottom) d = r.bottom - bottom;
+  if (r.top - d < top) d = r.top - top;
+  if (d) el.scroll.scrollTop += d;
+  const vv = window.visualViewport;
+  if (window.scrollY || (vv && vv.offsetTop > 0)) window.scrollTo(0, 0);
+}
+
 if (window.visualViewport){
-  window.visualViewport.addEventListener("resize", syncHeight);
-  window.visualViewport.addEventListener("scroll", syncHeight);
+  window.visualViewport.addEventListener("resize", queueViewport);
+  window.visualViewport.addEventListener("scroll", queueViewport);
 }
-window.addEventListener("resize", syncHeight);
-window.addEventListener("orientationchange", () => setTimeout(syncHeight, 250));
-document.addEventListener("focusin", () => {
-  setTimeout(() => {
-    if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
-    syncHeight();
-  }, 120);
+window.addEventListener("resize", queueViewport);
+window.addEventListener("orientationchange", () => setTimeout(queueViewport, 250));
+document.addEventListener("focusin", e => {
+  if (!isTextField(e.target)) return;
+  queueViewport();
+  if (kbOpen) requestAnimationFrame(revealFocused);   /* next field, same keyboard */
 });
+/* Keyboard mode ends with the focus, so the tab bar returns as the keys
+   slide away rather than after. */
+document.addEventListener("focusout", () => setTimeout(queueViewport, 0));
+
+/* Tapping empty space dismisses the keyboard, as in native iOS apps.
+   A tap only: dragging the list keeps the keyboard up. */
+[el.scroll, $(".appbar")].forEach(zone => zone.addEventListener("click", e => {
+  if (!kbOpen) return;
+  if (e.target.closest("input, textarea, button, summary, label, a, [role=radio]")) return;
+  if (isTextField(document.activeElement)) document.activeElement.blur();
+}));
 
 /* ============================================================
    INIT
    ============================================================ */
-syncHeight();
+syncViewport();
 applyI18n();
 syncVars();
 showTab("calc");
