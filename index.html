@@ -212,6 +212,8 @@ input,textarea{touch-action:manipulation}
   min-height:32px;padding-top:9px;border-top:1px solid var(--line);
 }
 .out-meta{font-size:12.5px;line-height:1.45;color:var(--ink-3);font-variant-numeric:tabular-nums lining-nums;min-width:0}
+/* Each item stays whole; the line may only break at the " · " between them. */
+.out-meta > span{white-space:nowrap}
 .out-total{font-size:17px;font-weight:750;white-space:nowrap;font-variant-numeric:tabular-nums lining-nums}
 .out-total.is-empty{color:var(--ink-3);font-weight:500}
 
@@ -888,6 +890,8 @@ const ICON_WARN = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path
 const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
 const fmtGEL = v => fmtNum(v, state.settings.dec) + " " + GEL;
 const fmtUSD = v => "$" + fmtNum(v, 2);
+/* A rate around $0.4-0.9: two decimals would hide up to ~1%, so three. */
+const fmtUSDm2 = v => "$" + fmtNum(v, 3) + "/" + t("u.m2");
 
 function toNumeric(row){
   return {
@@ -1055,10 +1059,16 @@ function paint(){
     if (issues.length) flagged++;
 
     if (o && o.ok && o.lineGEL > 0){
-      meta.textContent = fmtNum(o.Ltot, 0) + " × " + fmtNum(o.Wtot, 0) + " " + t("u.mm") +
-                         " · " + fmtNum(o.m2, 4) + " " + t("u.m2") + t("u.per") +
-                         " · " + fmtNum(o.area, 2) + " " + t("u.m2") + " " + t("u.total") +
-                         " · " + fmtGEL(o.unitGEL) + t("u.per");
+      /* $/m2 is the VAT-inclusive dollar rate per square metre. It equals
+         ₾/pc ÷ rate ÷ m2/pc; computed as unitUSD ÷ m2 so it cannot divide by
+         a rate of zero. Display only — no price depends on it. */
+      setMeta(meta, [
+        fmtNum(o.Ltot, 0) + " × " + fmtNum(o.Wtot, 0) + " " + t("u.mm"),
+        fmtNum(o.m2, 4) + " " + t("u.m2") + t("u.per"),
+        fmtNum(o.area, 2) + " " + t("u.m2") + " " + t("u.total"),
+        fmtUSDm2(o.unitUSD / o.m2),
+        fmtGEL(o.unitGEL) + t("u.per")
+      ]);
       total.textContent = fmtGEL(o.lineGEL);
       total.classList.remove("is-empty");
     } else {
@@ -1079,6 +1089,16 @@ function paint(){
   renderBreakdown(q);
   renderReadouts(q);
   announce(q);
+}
+
+function setMeta(node, items){
+  node.textContent = "";
+  items.forEach((text, i) => {
+    if (i) node.appendChild(document.createTextNode(" · "));
+    const span = document.createElement("span");
+    span.textContent = text;
+    node.appendChild(span);
+  });
 }
 
 /* Hero count-up. Cheap, cancellable, skipped under reduced motion. */
